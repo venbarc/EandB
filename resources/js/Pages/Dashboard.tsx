@@ -3,7 +3,7 @@ import { Header } from '@/Components/Header';
 import { StatsSection } from '@/Components/StatsSection';
 import { Filters } from '@/Components/Filters';
 import { AppointmentsTable } from '@/Components/AppointmentsTable';
-import { UpdateRecordModal, UpdatePSCModal } from '@/Components/Modals';
+import { UpdateRecordModal } from '@/Components/Modals';
 import { Appointment, DashboardStats, FilterOptions, FilterState, PaginatedAppointments } from '@/types';
 
 interface DashboardProps {
@@ -16,12 +16,14 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ stats, appointments, filters, filterOptions }) => {
   const [selectedRecord, setSelectedRecord] = useState<Appointment | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isPSCModalOpen, setIsPSCModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-700 pb-20 text-slate-100">
+      <div className="pointer-events-none absolute -left-24 top-16 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-8 right-2 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl" />
+
       <Header filters={filters} />
-      <main className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="relative z-10 mx-auto w-full max-w-[1920px] space-y-7 px-4 py-8 sm:px-6 lg:px-8">
         <section>
           <StatsSection stats={stats} />
         </section>
@@ -34,18 +36,12 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, appointments, filters, fil
             meta={appointments.meta}
             currentFilters={filters}
             onUpdateRecord={(appt) => { setSelectedRecord(appt); setIsUpdateModalOpen(true); }}
-            onUpdatePSC={(appt) => { setSelectedRecord(appt); setIsPSCModalOpen(true); }}
           />
         </section>
       </main>
       <UpdateRecordModal
         isOpen={isUpdateModalOpen}
         onClose={() => { setIsUpdateModalOpen(false); setSelectedRecord(null); }}
-        record={selectedRecord}
-      />
-      <UpdatePSCModal
-        isOpen={isPSCModalOpen}
-        onClose={() => { setIsPSCModalOpen(false); setSelectedRecord(null); }}
         record={selectedRecord}
       />
     </div>

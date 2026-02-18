@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Calendar, Filter, X, ChevronDown, Check } from 'lucide-react';
+import { Calendar, Filter, X, ChevronDown, Check, Search } from 'lucide-react';
 import { FilterOptions, FilterState } from '@/types';
 
 interface FiltersProps {
@@ -11,13 +11,13 @@ interface FiltersProps {
 export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [form, setForm] = useState<FilterState>({
-    date:      filters.date      ?? '',
-    patient:   filters.patient   ?? '',
-    provider:  filters.provider  ?? '',
-    status:    filters.status    ?? '',
-    location:  filters.location  ?? '',
-    auth:      filters.auth      ?? '',
-    referral:  filters.referral  ?? '',
+    date: filters.date ?? '',
+    patient: filters.patient ?? '',
+    provider: filters.provider ?? '',
+    status: filters.status ?? '',
+    location: filters.location ?? '',
+    auth: filters.auth ?? '',
+    referral: filters.referral ?? '',
     insurances: filters.insurances ?? [],
   });
 
@@ -25,37 +25,49 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
-  const toggleInsurance = (ins: string) => {
-    const current = form.insurances ?? [];
-    setForm(prev => ({
+  const toggleInsurance = (insurance: string) => {
+    const selected = form.insurances ?? [];
+    setForm((prev) => ({
       ...prev,
-      insurances: current.includes(ins)
-        ? current.filter(i => i !== ins)
-        : [...current, ins],
+      insurances: selected.includes(insurance)
+        ? selected.filter((item) => item !== insurance)
+        : [...selected, insurance],
     }));
   };
 
   const handleFilter = () => {
-    const params: Record<string, unknown> = {};
-    if (form.date)     params.date     = form.date;
-    if (form.patient)  params.patient  = form.patient;
+    const params: Record<string, string | string[]> = {};
+    if (form.date) params.date = form.date;
+    if (form.patient) params.patient = form.patient;
     if (form.provider) params.provider = form.provider;
-    if (form.status)   params.status   = form.status;
+    if (form.status) params.status = form.status;
     if (form.location) params.location = form.location;
-    if (form.auth)     params.auth     = form.auth;
+    if (form.auth) params.auth = form.auth;
     if (form.referral) params.referral = form.referral;
-    if ((form.insurances ?? []).length > 0) params.insurances = form.insurances;
+    if ((form.insurances ?? []).length > 0) params.insurances = form.insurances ?? [];
+
     router.get('/', params, { preserveState: true, preserveScroll: true });
     setOpenDropdown(null);
   };
 
   const handleClear = () => {
-    setForm({ date: '', patient: '', provider: '', status: '', location: '', auth: '', referral: '', insurances: [] });
+    setForm({
+      date: '',
+      patient: '',
+      provider: '',
+      status: '',
+      location: '',
+      auth: '',
+      referral: '',
+      insurances: [],
+    });
     router.get('/', {}, { preserveState: false });
     setOpenDropdown(null);
   };
 
-  // Generic select dropdown
+  const fieldClass =
+    'w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2.5 text-sm text-slate-100 shadow-sm transition focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30';
+
   const FilterDropdown: React.FC<{
     label: string;
     name: keyof FilterState;
@@ -63,65 +75,82 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     value: string;
   }> = ({ label, name, options, value }) => (
     <div className="relative">
-      <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">{label}</label>
       <button
+        type="button"
         onClick={() => toggleDropdown(name)}
-        className="w-full text-left bg-white border border-gray-300 hover:border-brand-500 text-gray-700 text-sm rounded-lg px-3 py-2 flex items-center justify-between shadow-sm transition-colors focus:ring-2 focus:ring-brand-100 focus:border-brand-500 outline-none"
+        className={`${fieldClass} flex items-center justify-between text-left`}
       >
-        <span className="truncate">{value || 'Select…'}</span>
-        <ChevronDown size={14} className="text-gray-400 shrink-0" />
+        <span className="truncate">{value || 'Select...'}</span>
+        <ChevronDown size={14} className="shrink-0 text-slate-400" />
       </button>
       {openDropdown === name && (
-        <div className="absolute z-50 mt-1 w-full min-w-[200px] bg-white rounded-lg shadow-xl border border-gray-200 py-1 animate-in fade-in zoom-in-95 duration-100 max-h-48 overflow-y-auto">
-          <div
-            className="px-3 py-1.5 hover:bg-gray-50 text-sm text-gray-500 cursor-pointer"
-            onClick={() => { setForm(prev => ({ ...prev, [name]: '' })); setOpenDropdown(null); }}
+        <div className="absolute z-50 mt-1.5 max-h-52 w-full overflow-y-auto rounded-xl border border-white/15 bg-slate-900 p-1 shadow-xl">
+          <button
+            type="button"
+            className="w-full rounded-lg px-3 py-1.5 text-left text-sm text-slate-300 transition hover:bg-white/10"
+            onClick={() => {
+              setForm((prev) => ({ ...prev, [name]: '' }));
+              setOpenDropdown(null);
+            }}
           >
-            — None —
-          </div>
-          {options.map(opt => (
-            <div
-              key={opt}
-              className={`px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer flex items-center gap-2 ${value === opt ? 'text-brand-700 font-medium' : 'text-gray-700'}`}
-              onClick={() => { setForm(prev => ({ ...prev, [name]: opt })); setOpenDropdown(null); }}
+            None
+          </button>
+          {options.map((option) => (
+            <button
+              type="button"
+              key={option}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm transition hover:bg-white/10 ${
+                value === option ? 'font-semibold text-cyan-300' : 'text-slate-200'
+              }`}
+              onClick={() => {
+                setForm((prev) => ({ ...prev, [name]: option }));
+                setOpenDropdown(null);
+              }}
             >
-              {value === opt && <Check size={12} className="text-brand-600" />}
-              {opt}
-            </div>
+              {value === option && <Check size={12} />}
+              <span className="truncate">{option}</span>
+            </button>
           ))}
         </div>
       )}
     </div>
   );
 
-  // Multi-select insurance dropdown
   const InsuranceDropdown: React.FC = () => {
     const selected = form.insurances ?? [];
     return (
       <div className="relative">
-        <label className="block text-xs font-semibold text-gray-500 mb-1">Insurance Type</label>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">Insurance Type</label>
         <button
+          type="button"
           onClick={() => toggleDropdown('insuranceType')}
-          className="w-full text-left bg-white border border-gray-300 hover:border-brand-500 text-gray-700 text-sm rounded-lg px-3 py-2 flex items-center justify-between shadow-sm transition-colors focus:ring-2 focus:ring-brand-100 focus:border-brand-500 outline-none"
+          className={`${fieldClass} flex items-center justify-between text-left`}
         >
-          <span className="truncate">
-            {selected.length > 0 ? `${selected.length} Selected` : 'Select…'}
-          </span>
-          <ChevronDown size={14} className="text-gray-400 shrink-0" />
+          <span className="truncate">{selected.length > 0 ? `${selected.length} selected` : 'Select...'}</span>
+          <ChevronDown size={14} className="shrink-0 text-slate-400" />
         </button>
+
         {openDropdown === 'insuranceType' && (
-          <div className="absolute z-50 mt-1 w-full min-w-[220px] bg-white rounded-lg shadow-xl border border-gray-200 py-1 animate-in fade-in zoom-in-95 duration-100 max-h-48 overflow-y-auto">
-            {filterOptions.insurances.map(opt => (
-              <div
-                key={opt}
-                className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 rounded cursor-pointer"
-                onClick={() => toggleInsurance(opt)}
+          <div className="absolute z-50 mt-1.5 max-h-56 w-full overflow-y-auto rounded-xl border border-white/15 bg-slate-900 p-1 shadow-xl">
+            {filterOptions.insurances.map((option) => (
+              <button
+                type="button"
+                key={option}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                onClick={() => toggleInsurance(option)}
               >
-                <div className={`w-4 h-4 border rounded flex items-center justify-center shrink-0 ${selected.includes(opt) ? 'bg-brand-600 border-brand-600' : 'border-gray-300'}`}>
-                  {selected.includes(opt) && <Check size={10} className="text-white" />}
-                </div>
-                <span className="text-sm text-gray-700 truncate">{opt}</span>
-              </div>
+                <span
+                  className={`flex h-4 w-4 items-center justify-center rounded border ${
+                    selected.includes(option)
+                      ? 'border-cyan-400 bg-cyan-400 text-slate-900'
+                      : 'border-white/30 bg-slate-900'
+                  }`}
+                >
+                  {selected.includes(option) && <Check size={10} />}
+                </span>
+                <span className="truncate">{option}</span>
+              </button>
             ))}
           </div>
         )}
@@ -130,74 +159,61 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
   };
 
   return (
-    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
-
-        {/* Date Picker */}
-        <div className="w-full lg:w-48">
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Appointment Date</label>
-          <div className="relative">
-            <input
-              type="date"
-              value={form.date ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, date: e.target.value }))}
-              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block pl-10 p-2 shadow-sm"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Calendar size={16} className="text-gray-400" />
+    <div className="rounded-2xl border border-white/15 bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm sm:p-5">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          <div className="xl:col-span-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">Appointment Date</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={form.date ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                className={`${fieldClass} pl-10 [color-scheme:dark]`}
+              />
+              <Calendar size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
+
+          <div className="relative xl:col-span-2">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">Patient Search</label>
+            <input
+              type="text"
+              value={form.patient ?? ''}
+              onChange={(event) => setForm((prev) => ({ ...prev, patient: event.target.value }))}
+              onKeyDown={(event) => event.key === 'Enter' && handleFilter()}
+              placeholder="Search patient name or ID..."
+              className={`${fieldClass} pl-10`}
+            />
+            <Search size={15} className="pointer-events-none absolute left-3 top-[34px] text-slate-400" />
+          </div>
+
+          <InsuranceDropdown />
+          <FilterDropdown label="Location" name="location" options={filterOptions.locations} value={form.location ?? ''} />
+          <FilterDropdown label="Provider" name="provider" options={filterOptions.providers} value={form.provider ?? ''} />
+          <FilterDropdown label="Appt Status" name="status" options={filterOptions.statuses} value={form.status ?? ''} />
+          <FilterDropdown label="Auth Required" name="auth" options={['Auth Required', 'N/A']} value={form.auth ?? ''} />
+          <FilterDropdown label="Referral Required" name="referral" options={['Required', 'N/A']} value={form.referral ?? ''} />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 md:pb-0.5">
           <button
+            type="button"
             onClick={handleFilter}
-            className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-all"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-cyan-500/30 transition hover:from-cyan-400 hover:to-teal-400"
           >
-            <Filter size={16} /> Filter
+            <Filter size={15} />
+            Filter
           </button>
           <button
+            type="button"
             onClick={handleClear}
-            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-red-500 px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-all"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-slate-900/65 px-4 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition hover:bg-slate-800/80"
           >
-            <X size={16} /> Clear
+            <X size={15} />
+            Clear
           </button>
         </div>
-      </div>
-
-      {/* Filter Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-
-        {/* Patient Search */}
-        <div className="relative">
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Patient Search</label>
-          <input
-            type="text"
-            value={form.patient ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, patient: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && handleFilter()}
-            placeholder="Search name or ID…"
-            className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg px-3 py-2 shadow-sm focus:ring-2 focus:ring-brand-100 focus:border-brand-500 outline-none"
-          />
-        </div>
-
-        <InsuranceDropdown />
-
-        <FilterDropdown label="Location"   name="location" options={filterOptions.locations}  value={form.location ?? ''} />
-        <FilterDropdown label="Provider"   name="provider" options={filterOptions.providers}  value={form.provider ?? ''} />
-        <FilterDropdown label="Appt Status" name="status"  options={filterOptions.statuses}   value={form.status ?? ''} />
-
-        <FilterDropdown
-          label="Auth Required" name="auth"
-          options={['Auth Required', 'N/A']}
-          value={form.auth ?? ''}
-        />
-        <FilterDropdown
-          label="Referral Required" name="referral"
-          options={['Required', 'N/A']}
-          value={form.referral ?? ''}
-        />
       </div>
     </div>
   );

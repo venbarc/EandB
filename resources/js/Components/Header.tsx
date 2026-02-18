@@ -1,14 +1,12 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { router } from '@inertiajs/react';
 import {
   LayoutDashboard,
-  Building2,
-  Users,
-  BookOpen,
   MessageSquare,
   Download,
-  Upload,
   Loader2,
+  Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { FilterState } from '@/types';
 
@@ -17,64 +15,51 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importing, setImporting] = React.useState(false);
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImporting(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
-    router.post('/appointments/import', formData as unknown as Record<string, unknown>, {
-      forceFormData: true,
-      onSuccess: () => setImporting(false),
-      onError:   () => setImporting(false),
-      onFinish:  () => {
-        setImporting(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      },
-    });
-  };
+  const [loggingOut, setLoggingOut] = React.useState(false);
 
   const buildExportUrl = (base: string) => {
     const params = new URLSearchParams();
-    if (filters.date)     params.set('date',     filters.date);
-    if (filters.patient)  params.set('patient',  filters.patient);
+    if (filters.date) params.set('date', filters.date);
+    if (filters.patient) params.set('patient', filters.patient);
     if (filters.provider) params.set('provider', filters.provider);
-    if (filters.status)   params.set('status',   filters.status);
-    (filters.insurances ?? []).forEach(ins => params.append('insurances[]', ins));
-    const qs = params.toString();
-    return qs ? `${base}?${qs}` : base;
+    if (filters.status) params.set('status', filters.status);
+    (filters.insurances ?? []).forEach((insurance) => params.append('insurances[]', insurance));
+    const query = params.toString();
+    return query ? `${base}?${query}` : base;
+  };
+
+  const handleLogout = () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+    router.post('/logout', {}, {
+      onFinish: () => setLoggingOut(false),
+    });
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-
-          {/* Left: Logo & Title */}
-          <div className="flex items-center gap-4">
-            <div className="bg-brand-600 text-white p-2 rounded-lg">
-              <LayoutDashboard size={24} />
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-900/55 shadow-[0_12px_28px_-20px_rgba(2,12,27,0.95)] backdrop-blur-xl">
+      <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-8">
+        <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 py-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 p-2.5 text-white shadow-md shadow-cyan-500/25">
+              <LayoutDashboard size={20} />
             </div>
-            <h1 className="text-xl font-bold text-gray-800 tracking-tight">
-              Eligibility &amp; Benefits
-            </h1>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-white">Eligibility &amp; Benefits</h1>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-cyan-200/90">CF-Outsourcing</p>
+            </div>
           </div>
 
-          {/* Center: Navigation */}
-          <nav className="hidden md:flex space-x-1">
-            {(['Dashboard', 'Department', 'Directory', 'Resources'] as const).map((item, idx) => (
+          <nav className="hidden items-center gap-1 rounded-xl border border-white/10 bg-slate-900/50 p-1 lg:flex">
+            {['Dashboard', 'Department', 'Directory', 'Resources'].map((item, index) => (
               <a
                 key={item}
                 href="#"
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  idx === 0
-                    ? 'text-brand-700 bg-brand-50'
-                    : 'text-gray-600 hover:text-brand-600 hover:bg-gray-50'
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  index === 0
+                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-200'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {item}
@@ -82,49 +67,54 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
             ))}
           </nav>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-3">
-            <button className="text-gray-500 hover:text-gray-700 text-sm font-medium flex items-center gap-1 mr-2">
-              <MessageSquare size={16} /> Feedback
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white">
+              <MessageSquare size={15} />
+              Feedback
             </button>
-            <div className="h-6 w-px bg-gray-200 mx-1" />
 
-            {/* Export All */}
             <a
               href={buildExportUrl('/appointments/export')}
-              className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-all"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800/80"
             >
-              <Download size={16} /> Export All
+              <Download size={15} />
+              Export All
             </a>
 
-            {/* Export Availity */}
             <a
               href={buildExportUrl('/appointments/export/availity')}
-              className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-all"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-cyan-500/30 transition hover:from-cyan-400 hover:to-teal-400"
             >
-              <Download size={16} /> Export Availity
+              <Sparkles size={15} />
+              Export Availity
             </a>
 
-            {/* Import Availity */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={importing}
-              className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-all disabled:opacity-60"
+            <a
+              href={buildExportUrl('/appointments/export/pa-dept')}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-500/15 px-3.5 py-2 text-sm font-semibold text-amber-100 shadow-sm transition hover:bg-amber-500/25"
             >
-              {importing
-                ? <><Loader2 size={16} className="animate-spin" /> Importing…</>
-                : <><Upload size={16} /> Import Availity</>
-              }
+              <Download size={15} />
+              Export PA Dept
+            </a>
+
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3.5 py-2 text-sm font-semibold text-rose-200 shadow-sm transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loggingOut ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                <>
+                  <LogOut size={15} />
+                  Logout
+                </>
+              )}
             </button>
 
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleImport}
-            />
           </div>
         </div>
       </div>

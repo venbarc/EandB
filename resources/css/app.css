@@ -38,3 +38,46 @@ body {
     font-family: 'Inter', sans-serif;
     background-color: #f3f4f6;
 }
+
+.modal-select {
+    color: #111827;
+    color-scheme: light;
+}
+
+.modal-select option {
+    color: #111827;
+    background-color: #ffffff;
+}
+
+@keyframes auth-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-18px);
+    }
+}
+
+@keyframes auth-appear {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-blob {
+    animation: auth-float 14s ease-in-out infinite;
+}
+
+.auth-card {
+    animation: auth-appear 420ms ease-out both;
+}
+
+.auth-card-delay {
+    animation-delay: 100ms;
+}
