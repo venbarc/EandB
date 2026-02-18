@@ -1,4 +1,4 @@
-# MediFlow — Eligibility & Benefits Dashboard
+# Eligibility & Benefits Dashboard
 
 A healthcare eligibility tracking and appointment management system built with **Laravel 12**, **Inertia.js v2**, **React 19**, and **Tailwind CSS v4**.
 
@@ -20,7 +20,7 @@ A healthcare eligibility tracking and appointment management system built with *
 ## Features
 
 - **Dashboard** — Paginated appointments table (20 per page) with expandable row details showing patient, insurance, eligibility, and financial data
-- **Statistics** — 6 live KPI cards: Total Appointments, Eligibility Completed, Payments Completed, Total Amount, Total Collections, Total Unpaid
+- **Statistics** — 6 live patient-count KPI cards: Total Appointments, Eligible, Not Eligible, Verification Pending, Auth Count, Ref Count
 - **Filtering** — Multi-field filters: date, patient name, insurance (multi-select), location, provider, appointment status, auth required, referral required
 - **Record Update** — 3-step modal workflow: Eligibility → Collect → Receipt confirmation
 - **PSC Code Update** — Quick modal to assign Provider Service Center codes and descriptions
@@ -135,3 +135,4 @@ The `@` path alias resolves to `resources/js/` in both `vite.config.ts` and `tsc
 ## License
 
 Private — internal use only.
+

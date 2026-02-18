@@ -43,15 +43,17 @@ export interface Appointment {
   collectedMethod: string;
   collectedReceiptNo: string;
   notes: string;
+  isSubmittedToPaDept: boolean;
+  paSubmittedAt?: string | null;
 }
 
 export interface DashboardStats {
   totalAppointments: number;
-  eligibilityCompleted: number;
-  paymentsCompleted: number;
-  totalAmount: number;
-  totalCollections: number;
-  totalUnpaid: number;
+  eligibleCount: number;
+  notEligibleCount: number;
+  verificationPendingCount: number;
+  authCount: number;
+  refCount: number;
 }
 
 export interface PaginationMeta {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
 {
@@ -117,5 +118,10 @@ class Appointment extends Model
     public function scopeForReferral(Builder $query, ?string $referral): Builder
     {
         return $referral ? $query->where('referral_status', $referral) : $query;
+    }
+
+    public function paDepartmentSubmission(): HasOne
+    {
+        return $this->hasOne(PaDepartmentSubmission::class);
     }
 }

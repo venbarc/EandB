@@ -19,6 +19,7 @@ class DashboardController extends Controller
 
         // ── Appointments query ───────────────────────────────────────────────────
         $appointments = Appointment::query()
+            ->with('paDepartmentSubmission')
             ->forDate($filters['date'] ?? null)
             ->forPatient($filters['patient'] ?? null)
             ->forInsurances(isset($filters['insurances']) ? (array) $filters['insurances'] : null)
@@ -34,15 +35,22 @@ class DashboardController extends Controller
             ->through(fn (Appointment $a) => $this->transformAppointment($a));
 
         // ── Live stats ───────────────────────────────────────────────────────────
+        $aggregates = Appointment::query()
+            ->selectRaw('COUNT(*) AS total_appointments')
+            ->selectRaw("SUM(CASE WHEN eligibility_status = 'Eligible' THEN 1 ELSE 0 END) AS eligible_count")
+            ->selectRaw("SUM(CASE WHEN eligibility_status = 'Not Eligible' THEN 1 ELSE 0 END) AS not_eligible_count")
+            ->selectRaw("SUM(CASE WHEN eligibility_status IN ('Verification Pending', 'Verification Needed') THEN 1 ELSE 0 END) AS verification_pending_count")
+            ->selectRaw("SUM(CASE WHEN auth_status = 'Auth Required' THEN 1 ELSE 0 END) AS auth_count")
+            ->selectRaw("SUM(CASE WHEN referral_status = 'Required' THEN 1 ELSE 0 END) AS ref_count")
+            ->first();
+
         $stats = [
-            'totalAppointments'    => Appointment::count(),
-            'eligibilityCompleted' => Appointment::where('eligibility_status', 'Eligible')->count(),
-            'paymentsCompleted'    => Appointment::where('invoice_status', 'Paid')->count(),
-            'totalAmount'          => round((float) Appointment::sum('charges'), 2),
-            'totalCollections'     => round((float) Appointment::sum('payments'), 2),
-            'totalUnpaid'          => round(
-                (float) Appointment::where('invoice_status', 'Unpaid')->sum('charges'), 2
-            ),
+            'totalAppointments'        => (int) ($aggregates?->total_appointments ?? 0),
+            'eligibleCount'            => (int) ($aggregates?->eligible_count ?? 0),
+            'notEligibleCount'         => (int) ($aggregates?->not_eligible_count ?? 0),
+            'verificationPendingCount' => (int) ($aggregates?->verification_pending_count ?? 0),
+            'authCount'                => (int) ($aggregates?->auth_count ?? 0),
+            'refCount'                 => (int) ($aggregates?->ref_count ?? 0),
         ];
 
         // ── Filter options (for populating dropdowns) ────────────────────────────
@@ -120,6 +128,8 @@ class DashboardController extends Controller
             'collectedMethod'      => $a->collected_method ?? '',
             'collectedReceiptNo'   => $a->collected_receipt_no ?? '',
             'notes'                => $a->notes ?? '',
+            'isSubmittedToPaDept'  => $a->paDepartmentSubmission !== null,
+            'paSubmittedAt'        => $a->paDepartmentSubmission?->submitted_at?->toIso8601String(),
         ];
     }
 }

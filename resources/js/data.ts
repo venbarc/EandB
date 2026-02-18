@@ -2,11 +2,11 @@ import { Appointment, DashboardStats } from './types';
 
 export const MOCK_STATS: DashboardStats = {
   totalAppointments: 563,
-  eligibilityCompleted: 142,
-  paymentsCompleted: 89,
-  totalAmount: 12450.00,
-  totalCollections: 4320.50,
-  totalUnpaid: 8129.50,
+  eligibleCount: 142,
+  notEligibleCount: 67,
+  verificationPendingCount: 354,
+  authCount: 89,
+  refCount: 54,
 };
 
 const NAMES = ["Patricia Kristin", "Singleton Karol", "Visconti Liam", "Ghazljian Raymond", "Ingram Melina", "Heck Larry", "Bell Arthur", "Medina Alishia"];

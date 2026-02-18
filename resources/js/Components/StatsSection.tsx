@@ -1,5 +1,6 @@
 import React from 'react';
 import { DashboardStats } from '@/types';
+import { ArrowUpRight } from 'lucide-react';
 
 interface StatsSectionProps {
   stats: DashboardStats;
@@ -8,47 +9,29 @@ interface StatsSectionProps {
 const StatCard: React.FC<{
   label: string;
   value: string | number;
-  color: string;
-  subColor: string;
-}> = ({ label, value, color, subColor }) => (
-  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 relative overflow-hidden group hover:shadow-md transition-shadow">
-    <div className={`absolute top-0 left-0 w-full h-1 ${color}`}></div>
-    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{label}</p>
-    <p className={`text-2xl font-bold text-gray-900 group-hover:scale-105 transition-transform origin-left`}>{value}</p>
-  </div>
-);
-
-const LegendItem: React.FC<{ color: string; label: string }> = ({ color, label }) => (
-  <div className="flex items-center gap-2">
-    <span className={`w-3 h-3 rounded-full ${color} ring-1 ring-inset ring-black/10`}></span>
-    <span className="text-xs text-gray-600 font-medium">{label}</span>
+  tone: string;
+}> = ({ label, value, tone }) => (
+  <div className="group relative overflow-hidden rounded-2xl border border-white/15 bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-slate-900/70">
+    <div className={`absolute left-0 top-0 h-1 w-full ${tone}`} />
+    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">{label}</p>
+    <p className="mt-1.5 text-3xl font-semibold tracking-tight text-white">{value}</p>
+    <ArrowUpRight className="absolute bottom-3 right-3 h-4 w-4 text-slate-500 transition group-hover:text-cyan-300" />
   </div>
 );
 
 export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
-  const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-
   return (
     <div className="space-y-4">
-      {/* Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard label="Total Appointments" value={stats.totalAppointments} color="bg-indigo-500" subColor="text-indigo-600" />
-        <StatCard label="Eligibility Completed" value={stats.eligibilityCompleted} color="bg-emerald-500" subColor="text-emerald-600" />
-        <StatCard label="Payments Completed" value={stats.paymentsCompleted} color="bg-blue-500" subColor="text-blue-600" />
-        <StatCard label="Total Amount" value={formatter.format(stats.totalAmount)} color="bg-gray-500" subColor="text-gray-600" />
-        <StatCard label="Total Collections" value={formatter.format(stats.totalCollections)} color="bg-amber-500" subColor="text-amber-600" />
-        <StatCard label="Total Unpaid" value={formatter.format(stats.totalUnpaid)} color="bg-rose-500" subColor="text-rose-600" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Total Appointments" value={stats.totalAppointments} tone="bg-gradient-to-r from-indigo-500 to-blue-500" />
+        <StatCard label="Eligible" value={stats.eligibleCount} tone="bg-gradient-to-r from-emerald-500 to-teal-500" />
+        <StatCard label="Not Eligible" value={stats.notEligibleCount} tone="bg-gradient-to-r from-rose-500 to-red-500" />
+        <StatCard label="Verification Pending" value={stats.verificationPendingCount} tone="bg-gradient-to-r from-amber-500 to-orange-500" />
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-6 gap-y-2 bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm items-center">
-        <span className="text-xs font-bold text-gray-400 uppercase mr-2">Legend:</span>
-        <LegendItem color="bg-emerald-400" label="Eligibility Completed" />
-        <LegendItem color="bg-rose-400" label="Eligibility Not Found" />
-        <LegendItem color="bg-orange-400" label="No Collection Required" />
-        <LegendItem color="bg-sky-400" label="Provider Not Credentialed" />
-        <LegendItem color="bg-blue-500" label="Payment Completed" />
-        <LegendItem color="bg-fuchsia-400" label="Self Pay" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <StatCard label="Auth Count" value={stats.authCount} tone="bg-gradient-to-r from-cyan-500 to-blue-500" />
+        <StatCard label="Ref Count" value={stats.refCount} tone="bg-gradient-to-r from-fuchsia-500 to-pink-500" />
       </div>
     </div>
   );
