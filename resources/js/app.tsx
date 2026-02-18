@@ -6,7 +6,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 createInertiaApp({
-    title: (title) => `${title} - MediFlow`,
+    title: (title) => `${title} - Eligibility & Benefits Dashboard`,
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.tsx`,

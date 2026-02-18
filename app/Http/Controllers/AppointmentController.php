@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Exports\AppointmentsExport;
 use App\Exports\AvailityExport;
+use App\Exports\PaDeptExport;
 use App\Imports\AppointmentsImport;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -16,22 +18,41 @@ class AppointmentController extends Controller
     /** Update eligibility + collection data from the 3-step modal. */
     public function update(Request $request, Appointment $appointment): RedirectResponse
     {
-        $data = $request->validate([
-            'provider_credentialed' => ['nullable', 'boolean'],
-            'eligibility_status'    => ['nullable', 'string', 'max:100'],
-            'collection_status'     => ['nullable', 'string', 'max:100'],
-            'payments'              => ['nullable', 'numeric', 'min:0'],
-            'auth_status'           => ['nullable', 'string', 'max:100'],
-            'referral_status'       => ['nullable', 'string', 'max:100'],
-            'notes'                 => ['nullable', 'string'],
-            'collected_amount'      => ['nullable', 'numeric', 'min:0'],
-            'collected_method'      => ['nullable', 'string', 'max:100'],
-            'collected_receipt_no'  => ['nullable', 'string', 'max:100'],
-        ]);
-
-        $appointment->update(array_filter($data, fn ($v) => $v !== null && $v !== ''));
+        $data = $this->validateAppointmentUpdateData($request);
+        $this->applyAppointmentUpdates($appointment, $data);
 
         return back()->with('success', 'Record updated successfully.');
+    }
+
+    /** Save appointment updates and toggle PA department submission in one action. */
+    public function togglePaDeptSubmission(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $toggle = $request->validate([
+            'submitted' => ['required', 'boolean'],
+        ]);
+
+        $data = $this->validateAppointmentUpdateData($request);
+
+        DB::transaction(function () use ($appointment, $data, $toggle, $request) {
+            $this->applyAppointmentUpdates($appointment, $data);
+
+            if ($toggle['submitted']) {
+                $appointment->paDepartmentSubmission()->updateOrCreate([], [
+                    'submitted_by' => $request->user()?->id,
+                    'submitted_at' => now(),
+                ]);
+                return;
+            }
+
+            $appointment->paDepartmentSubmission()->delete();
+        });
+
+        return back()->with(
+            'success',
+            $toggle['submitted']
+                ? 'Record submitted to PA Department successfully.'
+                : 'Record removed from PA Department successfully.'
+        );
     }
 
     /** Update PSC code + description. */
@@ -71,5 +92,67 @@ class AppointmentController extends Controller
     {
         $filters = $request->only(['date', 'patient', 'insurances', 'provider', 'status']);
         return Excel::download(new AvailityExport($filters), 'availity-export.xlsx');
+    }
+
+    /** Export records currently submitted to PA Department. */
+    public function exportPaDept(Request $request): BinaryFileResponse
+    {
+        $filters = $request->only(['date', 'patient', 'insurances', 'provider', 'status']);
+        return Excel::download(new PaDeptExport($filters), 'pa-dept-submissions.xlsx');
+    }
+
+    private function validateAppointmentUpdateData(Request $request): array
+    {
+        $providerCredentialed = $this->normalizeBooleanInput($request->input('provider_credentialed'));
+
+        if ($request->has('provider_credentialed')) {
+            $request->merge(['provider_credentialed' => $providerCredentialed]);
+        }
+
+        return $request->validate($this->appointmentUpdateRules());
+    }
+
+    private function applyAppointmentUpdates(Appointment $appointment, array $data): void
+    {
+        $appointment->update(array_filter($data, fn ($value) => $value !== null && $value !== ''));
+    }
+
+    private function appointmentUpdateRules(): array
+    {
+        return [
+            'provider_credentialed' => ['nullable', 'boolean'],
+            'eligibility_status'    => ['nullable', 'string', 'max:100'],
+            'collection_status'     => ['nullable', 'string', 'max:100'],
+            'payments'              => ['nullable', 'numeric', 'min:0'],
+            'auth_status'           => ['nullable', 'string', 'max:100'],
+            'referral_status'       => ['nullable', 'string', 'max:100'],
+            'notes'                 => ['nullable', 'string'],
+            'collected_amount'      => ['nullable', 'numeric', 'min:0'],
+            'collected_method'      => ['nullable', 'string', 'max:100'],
+            'collected_receipt_no'  => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
+    private function normalizeBooleanInput(mixed $value): mixed
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+
+            return match ($normalized) {
+                'yes', 'true', '1', 'on' => true,
+                'no', 'false', '0', 'off' => false,
+                default => $value,
+            };
+        }
+
+        return $value;
     }
 }
