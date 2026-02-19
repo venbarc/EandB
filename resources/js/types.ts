@@ -79,7 +79,9 @@ export interface PaginatedAppointments {
 }
 
 export type FilterState = {
-  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  ampm?: string;
   patient?: string;
   insurances?: string[];
   provider?: string;

@@ -19,10 +19,13 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
 
   const buildExportUrl = (base: string) => {
     const params = new URLSearchParams();
-    if (filters.date) params.set('date', filters.date);
+    if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.set('dateTo', filters.dateTo);
+    if (filters.ampm) params.set('ampm', filters.ampm);
     if (filters.patient) params.set('patient', filters.patient);
     if (filters.provider) params.set('provider', filters.provider);
     if (filters.status) params.set('status', filters.status);
+    if (filters.eligibility) params.set('eligibility', filters.eligibility);
     (filters.insurances ?? []).forEach((insurance) => params.append('insurances[]', insurance));
     const query = params.toString();
     return query ? `${base}?${query}` : base;
