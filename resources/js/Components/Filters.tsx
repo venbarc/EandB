@@ -11,7 +11,9 @@ interface FiltersProps {
 export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [form, setForm] = useState<FilterState>({
-    date: filters.date ?? '',
+    dateFrom: filters.dateFrom ?? '',
+    dateTo: filters.dateTo ?? '',
+    ampm: filters.ampm ?? '',
     patient: filters.patient ?? '',
     provider: filters.provider ?? '',
     status: filters.status ?? '',
@@ -40,7 +42,9 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
 
   const handleFilter = () => {
     const params: Record<string, string | string[]> = {};
-    if (form.date) params.date = form.date;
+    if (form.dateFrom) params.dateFrom = form.dateFrom;
+    if (form.dateTo) params.dateTo = form.dateTo;
+    if (form.ampm) params.ampm = form.ampm;
     if (form.patient) params.patient = form.patient;
     if (form.provider) params.provider = form.provider;
     if (form.status) params.status = form.status;
@@ -58,7 +62,9 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
 
   const handleClear = () => {
     setForm({
-      date: '',
+      dateFrom: '',
+      dateTo: '',
+      ampm: '',
       patient: '',
       provider: '',
       status: '',
@@ -171,27 +177,45 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     <div className="relative z-10 rounded-2xl border border-white/15 bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm sm:p-5">
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          <div className="xl:col-span-1">
+
+          {/* Appointment Date Range + AM/PM */}
+          <div className="xl:col-span-2">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">Appointment Date</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={form.date ?? ''}
-                onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
-                className={`${fieldClass} pl-10 [color-scheme:dark]`}
-              />
-              <Calendar size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={form.dateFrom ?? ''}
+                  onChange={(e) => setForm((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                  className={`${fieldClass} pl-9 [color-scheme:dark]`}
+                />
+                <Calendar size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+              <span className="shrink-0 text-xs text-slate-500">to</span>
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={form.dateTo ?? ''}
+                  onChange={(e) => setForm((prev) => ({ ...prev, dateTo: e.target.value }))}
+                  className={`${fieldClass} pl-9 [color-scheme:dark]`}
+                />
+                <Calendar size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
             </div>
           </div>
 
+          {/* AM / PM filter */}
+          <FilterDropdown label="AM / PM" name="ampm" options={['AM', 'PM']} value={form.ampm ?? ''} />
+
+          {/* Patient Search */}
           <div className="relative xl:col-span-2">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">Patient Search</label>
             <input
               type="text"
               value={form.patient ?? ''}
-              onChange={(event) => setForm((prev) => ({ ...prev, patient: event.target.value }))}
-              onKeyDown={(event) => event.key === 'Enter' && handleFilter()}
-              placeholder="Search patient name or ID..."
+              onChange={(e) => setForm((prev) => ({ ...prev, patient: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+              placeholder="Search by name, ID, or date of birth..."
               className={`${fieldClass} pl-10`}
             />
             <Search size={15} className="pointer-events-none absolute left-3 top-[34px] text-slate-400" />
@@ -203,6 +227,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
           <FilterDropdown label="Appt Status" name="status" options={filterOptions.statuses} value={form.status ?? ''} />
           <FilterDropdown label="Auth Required" name="auth" options={['Auth Required', 'N/A']} value={form.auth ?? ''} />
           <FilterDropdown label="Referral Required" name="referral" options={['Required', 'N/A']} value={form.referral ?? ''} />
+          <FilterDropdown label="E&B Status" name="eligibility" options={['Eligible', 'Not Eligible', 'Verification Pending']} value={form.eligibility ?? ''} />
         </div>
 
         <div className="flex items-center gap-2 md:pb-0.5">

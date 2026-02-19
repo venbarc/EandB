@@ -21,21 +21,23 @@ class AppointmentsImport implements ToModel, WithStartRow, WithChunkReading
      * Column mapping (1-based):
      *  2  Patient Name
      *  3  Date of Service
-     *  4  Appointment Status
-     *  5  Provider
-     *  6  Service (visit type)
-     *  7  Location
-     *  8  Invoice No.
-     *  9  Invoice Status
-     * 10  Current Responsibility
-     * 11  Claim Created (Yes/No)
-     * 12  Charges
-     * 13  Payments
-     * 14  Units
-     * 15  Created by
-     * 16  Cancellation Reason
-     * 17  Modification History
-     * 18  Payment Method
+     *  4  TIME (values: AM or PM)
+     *  5  E&B Status (Eligible, Not Eligible, Verification Pending; empty = Verification Pending)
+     *  6  Appointment Status
+     *  7  Provider
+     *  8  Service (visit type)
+     *  9  Location
+     * 10  Invoice No.
+     * 11  Invoice Status
+     * 12  Current Responsibility
+     * 13  Claim Created (Yes/No)
+     * 14  Charges
+     * 15  Payments
+     * 16  Units
+     * 17  Created by
+     * 18  Cancellation Reason
+     * 19  Modification History
+     * 20  Payment Method
      */
     public function startRow(): int
     {
@@ -59,24 +61,34 @@ class AppointmentsImport implements ToModel, WithStartRow, WithChunkReading
             return null;
         }
 
+        $ampm = strtoupper(trim((string) ($row[3] ?? '')));
+        $appointmentTime = in_array($ampm, ['AM', 'PM']) ? $ampm : null;
+
+        $ebStatus = trim((string) ($row[4] ?? ''));
+        $eligibilityStatus = in_array($ebStatus, ['Eligible', 'Not Eligible', 'Verification Pending'])
+            ? $ebStatus
+            : 'Verification Pending';
+
         return new Appointment([
             'patient_name'           => $name,
             'date_of_service'        => $date,
-            'appointment_status'     => trim((string) ($row[3] ?? 'New')),
-            'provider'               => trim((string) ($row[4] ?? '')),
-            'visit_type'             => trim((string) ($row[5] ?? '')),
-            'location'               => trim((string) ($row[6] ?? '')) ?: null,
-            'invoice_no'             => trim((string) ($row[7] ?? '')) ?: null,
-            'invoice_status'         => trim((string) ($row[8] ?? '')) ?: null,
-            'current_responsibility' => trim((string) ($row[9] ?? '')) ?: null,
-            'claim_created'          => strtolower(trim((string) ($row[10] ?? ''))) === 'yes',
-            'charges'                => is_numeric($row[11] ?? null) ? (float) $row[11] : 0,
-            'payments'               => is_numeric($row[12] ?? null) ? (float) $row[12] : 0,
-            'units'                  => is_numeric($row[13] ?? null) ? (int) $row[13] : 0,
-            'created_by'             => trim((string) ($row[14] ?? '')) ?: null,
-            'cancellation_reason'    => trim((string) ($row[15] ?? '')) ?: null,
-            'modification_history'   => trim((string) ($row[16] ?? '')) ?: null,
-            'payment_method'         => trim((string) ($row[17] ?? '')) ?: null,
+            'appointment_time'       => $appointmentTime,
+            'eligibility_status'     => $eligibilityStatus,
+            'appointment_status'     => trim((string) ($row[5] ?? 'New')),
+            'provider'               => trim((string) ($row[6] ?? '')),
+            'visit_type'             => trim((string) ($row[7] ?? '')),
+            'location'               => trim((string) ($row[8] ?? '')) ?: null,
+            'invoice_no'             => trim((string) ($row[9] ?? '')) ?: null,
+            'invoice_status'         => trim((string) ($row[10] ?? '')) ?: null,
+            'current_responsibility' => trim((string) ($row[11] ?? '')) ?: null,
+            'claim_created'          => strtolower(trim((string) ($row[12] ?? ''))) === 'yes',
+            'charges'                => is_numeric($row[13] ?? null) ? (float) $row[13] : 0,
+            'payments'               => is_numeric($row[14] ?? null) ? (float) $row[14] : 0,
+            'units'                  => is_numeric($row[15] ?? null) ? (int) $row[15] : 0,
+            'created_by'             => trim((string) ($row[16] ?? '')) ?: null,
+            'cancellation_reason'    => trim((string) ($row[17] ?? '')) ?: null,
+            'modification_history'   => trim((string) ($row[18] ?? '')) ?: null,
+            'payment_method'         => trim((string) ($row[19] ?? '')) ?: null,
         ]);
     }
 

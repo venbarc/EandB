@@ -73,19 +73,28 @@ class Appointment extends Model
 
     // ── Filter Scopes ──────────────────────────────────────────────────────────
 
-    public function scopeForDate(Builder $query, ?string $date): Builder
+    public function scopeForDateRange(Builder $query, ?string $from, ?string $to): Builder
     {
-        return $date ? $query->whereDate('date_of_service', $date) : $query;
+        if ($from) $query->whereDate('date_of_service', '>=', $from);
+        if ($to)   $query->whereDate('date_of_service', '<=', $to);
+        return $query;
+    }
+
+    public function scopeForAmPm(Builder $query, ?string $ampm): Builder
+    {
+        return $ampm ? $query->where('appointment_time', strtoupper($ampm)) : $query;
     }
 
     public function scopeForPatient(Builder $query, ?string $search): Builder
     {
-        return $search
-            ? $query->where(function (Builder $q) use ($search) {
-                $q->where('patient_name', 'like', "%{$search}%")
-                  ->orWhere('id', 'like', "%{$search}%");
-            })
-            : $query;
+        if (!$search) return $query;
+        $numericId = preg_replace('/^PT-0*/i', '', $search);
+        return $query->where(function (Builder $q) use ($search, $numericId) {
+            $q->where('patient_name', 'like', "%{$search}%")
+              ->orWhere('id', 'like', "%{$numericId}%")
+              ->orWhereRaw("DATE_FORMAT(patient_dob, '%m/%d/%Y') LIKE ?", ["%{$search}%"])
+              ->orWhere('patient_dob', 'like', "%{$search}%");
+        });
     }
 
     public function scopeForInsurances(Builder $query, ?array $insurances): Builder
@@ -124,7 +133,10 @@ class Appointment extends Model
     {
         if (!$eligibility) return $query;
         if ($eligibility === 'Verification Pending') {
-            return $query->whereIn('eligibility_status', ['Verification Pending', 'Verification Needed']);
+            return $query->where(function (Builder $q) {
+                $q->whereNull('eligibility_status')
+                  ->orWhereNotIn('eligibility_status', ['Eligible', 'Not Eligible']);
+            });
         }
         return $query->where('eligibility_status', $eligibility);
     }

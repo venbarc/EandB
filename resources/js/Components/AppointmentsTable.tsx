@@ -59,20 +59,24 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
       : <ArrowDown size={12} className="shrink-0 text-cyan-300" />;
   };
 
-  const getStatusColor = (status: string) => {
+  const getEligibilityColor = (status: string) => {
     const key = status.toLowerCase();
-    if (key.includes('confirm') || key.includes('checked')) return 'border-emerald-200 bg-emerald-100/70 text-emerald-800';
-    if (key.includes('pending')) return 'border-amber-200 bg-amber-100/70 text-amber-800';
-    if (key.includes('cancel')) return 'border-rose-200 bg-rose-100/70 text-rose-800';
-    if (key.includes('show')) return 'border-red-200 bg-red-100/70 text-red-800';
-    if (key.includes('new')) return 'border-indigo-200 bg-indigo-100/70 text-indigo-800';
-    return 'border-slate-200 bg-slate-100/70 text-slate-700';
+    if (key === 'eligible') return 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300';
+    if (key === 'not eligible') return 'border-rose-400/40 bg-rose-400/10 text-rose-300';
+    return 'border-amber-400/40 bg-amber-400/10 text-amber-300';
   };
+
+  const getAuthColor = (status: string): string | null =>
+    status === 'Auth Required' ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : null;
+
+  const getRefColor = (status: string): string | null =>
+    status === 'Required' ? 'border-fuchsia-400/40 bg-fuchsia-400/10 text-fuchsia-300' : null;
+
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/15 bg-slate-900/55 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm">
-      <div className="overflow-x-hidden">
-        <table className="w-full table-fixed">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1400px]">
           <thead className="bg-gradient-to-r from-slate-950 to-slate-900 text-white">
             <tr>
               <th className="w-8 px-3 py-3" />
@@ -85,6 +89,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                 { label: 'Appt Status',          sortKey: 'appt_status' },
                 { label: 'Confirmation',         sortKey: 'confirmation' },
                 { label: 'Auth/Referral',        sortKey: null },
+                { label: 'E&B Status',           sortKey: null },
                 { label: 'Primary Insurance',    sortKey: 'primary_insurance' },
                 { label: 'Secondary Insurance',  sortKey: 'secondary_insurance' },
                 { label: 'Visit Type',           sortKey: 'visit_type' },
@@ -110,7 +115,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
           <tbody className="divide-y divide-white/10 bg-slate-900/35">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-4 py-14 text-center text-sm font-medium text-slate-400">
+                <td colSpan={15} className="px-4 py-14 text-center text-sm font-medium text-slate-400">
                   No appointments found with the current filters.
                 </td>
               </tr>
@@ -134,17 +139,30 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                         <span className="text-xs text-slate-500">{row.time}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-4">
-                      <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(row.status)}`}>
-                        {row.status}
-                      </span>
-                    </td>
+                    <td className="px-2 py-4 text-sm text-slate-300">{row.status}</td>
                     <td className="px-2 py-4 text-sm text-slate-400 truncate" title={row.confirmationMethod}>{row.confirmationMethod}</td>
-                    <td className="px-2 py-4 text-sm text-slate-400">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs">Auth: {row.authStatus}</span>
-                        <span className="text-xs">Ref: {row.referralStatus}</span>
+                    <td className="px-2 py-4">
+                      <div className="flex flex-col gap-1.5">
+                        {getAuthColor(row.authStatus) ? (
+                          <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getAuthColor(row.authStatus)}`}>
+                            Auth: {row.authStatus}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500">Auth: {row.authStatus}</span>
+                        )}
+                        {getRefColor(row.referralStatus) ? (
+                          <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getRefColor(row.referralStatus)}`}>
+                            Ref: {row.referralStatus}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500">Ref: {row.referralStatus}</span>
+                        )}
                       </div>
+                    </td>
+                    <td className="px-2 py-4">
+                      <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getEligibilityColor(row.eligibilityStatus)}`}>
+                        {row.eligibilityStatus}
+                      </span>
                     </td>
                     <td className="px-2 py-4 text-sm text-slate-100 truncate" title={row.insurance.primary}>
                       {row.insurance.primary}
@@ -171,8 +189,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
 
                   {expandedId === row.id && (
                     <tr>
-                      <td colSpan={14} className="bg-slate-950/40 p-0">
-                        <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-4">
+                      <td colSpan={15} className="bg-slate-950/40 p-0">
+                        <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-5">
                           <DetailCard title="Patient Info" tone="bg-gradient-to-r from-cyan-600 to-blue-700">
                             <DetailRow label="Name" value={row.patient.name} />
                             <DetailRow label="Phone" value={row.patient.phone} />
@@ -184,6 +202,21 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                             <DetailRow label="Appt ID" value={row.patient.id} />
                             <DetailRow label="Provider" value={row.provider} />
                             <DetailRow label="Type" value={row.visitType} />
+                            <DetailRow label="Location" value={row.location || 'N/A'} />
+                          </DetailCard>
+
+                          <DetailCard title="Auth / Referral" tone="bg-gradient-to-r from-violet-600 to-purple-700">
+                            <DetailRow label="Auth" value={row.authStatus} />
+                            <DetailRow label="Referral" value={row.referralStatus} />
+                            <DetailRow label="Credentialed" value={row.providerCredentialed === true ? 'Yes' : row.providerCredentialed === false ? 'No' : 'Unknown'} />
+                            <DetailRow label="Collection" value={row.collectionStatus || 'N/A'} />
+                            <DetailRow label="Collected" value={row.collectedAmount != null ? `$${row.collectedAmount.toFixed(2)}` : 'N/A'} />
+                            <DetailRow label="Method" value={row.collectedMethod || 'N/A'} />
+                            <DetailRow label="Receipt No" value={row.collectedReceiptNo || 'N/A'} />
+                            <DetailRow label="PSC Code" value={row.pscCode || 'N/A'} />
+                            <DetailRow label="Invoice Status" value={row.invoiceStatus || 'N/A'} />
+                            <DetailRow label="Deductible" value={`$${row.deductible.toFixed(2)}`} />
+                            <DetailRow label="OOP" value={`$${row.oop.toFixed(2)}`} />
                           </DetailCard>
 
                           <DetailCard title="Insurance" tone="bg-gradient-to-r from-emerald-500 to-teal-500">
@@ -194,6 +227,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                           </DetailCard>
 
                           <DetailCard title="Eligibility" tone="bg-gradient-to-r from-indigo-600 to-blue-600">
+                            <DetailRow label="E&B Status" value={row.eligibilityStatus} />
                             <DetailRow label="Co-Pay" value={`$${row.credits.toFixed(2)}`} />
                             <DetailRow label="Charges" value={`$${row.charges.toFixed(2)}`} />
                             <DetailRow label="Notes" value={row.notes || 'N/A'} />

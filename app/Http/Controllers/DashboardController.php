@@ -13,7 +13,7 @@ class DashboardController extends Controller
     {
         // ── Filters ─────────────────────────────────────────────────────────────
         $filters = $request->only([
-            'date', 'patient', 'insurances', 'provider',
+            'dateFrom', 'dateTo', 'ampm', 'patient', 'insurances', 'provider',
             'status', 'location', 'auth', 'referral', 'eligibility',
             'sort', 'direction',
         ]);
@@ -21,7 +21,8 @@ class DashboardController extends Controller
         // ── Appointments query ───────────────────────────────────────────────────
         $appointments = Appointment::query()
             ->with('paDepartmentSubmission')
-            ->forDate($filters['date'] ?? null)
+            ->forDateRange($filters['dateFrom'] ?? null, $filters['dateTo'] ?? null)
+            ->forAmPm($filters['ampm'] ?? null)
             ->forPatient($filters['patient'] ?? null)
             ->forInsurances(isset($filters['insurances']) ? (array) $filters['insurances'] : null)
             ->forProvider($filters['provider'] ?? null)
