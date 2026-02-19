@@ -87,6 +87,9 @@ export type FilterState = {
   location?: string;
   auth?: string;
   referral?: string;
+  eligibility?: string;
+  sort?: string;
+  direction?: 'asc' | 'desc';
 };
 
 export interface FilterOptions {

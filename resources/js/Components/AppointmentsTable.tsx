@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Appointment, FilterState, PaginationMeta } from '@/types';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 interface AppointmentsTableProps {
   data: Appointment[];
@@ -42,6 +42,23 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
     router.get('/', { ...currentFilters, page }, { preserveState: true, preserveScroll: false });
   };
 
+  const handleSort = (sortKey: string) => {
+    const isSame = currentFilters.sort === sortKey;
+    const nextDir = isSame && currentFilters.direction === 'asc' ? 'desc'
+                  : isSame && currentFilters.direction === 'desc' ? null
+                  : 'asc';
+    const { sort: _s, direction: _d, page: _p, ...rest } = currentFilters as FilterState & { page?: number };
+    const params = nextDir ? { ...rest, sort: sortKey, direction: nextDir } : rest;
+    router.get('/', params, { preserveState: false });
+  };
+
+  const SortIcon: React.FC<{ sortKey: string }> = ({ sortKey }) => {
+    if (currentFilters.sort !== sortKey) return <ArrowUpDown size={12} className="shrink-0 text-slate-500" />;
+    return currentFilters.direction === 'asc'
+      ? <ArrowUp size={12} className="shrink-0 text-cyan-300" />
+      : <ArrowDown size={12} className="shrink-0 text-cyan-300" />;
+  };
+
   const getStatusColor = (status: string) => {
     const key = status.toLowerCase();
     if (key.includes('confirm') || key.includes('checked')) return 'border-emerald-200 bg-emerald-100/70 text-emerald-800';
@@ -59,26 +76,32 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
           <thead className="bg-gradient-to-r from-slate-950 to-slate-900 text-white">
             <tr>
               <th className="w-8 px-3 py-3" />
-              {[
-                'Patient ID',
-                'Patient Name',
-                'Date of Birth',
-                'Provider',
-                'Appt Date',
-                'Appt Status',
-                'Confirmation',
-                'Auth/Referral',
-                'Primary Insurance',
-                'Secondary Insurance',
-                'Visit Type',
-                'Paid',
-                'Actions',
-              ].map((header) => (
-                <th
-                  key={header}
-                  className="px-2 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-200/90"
-                >
-                  {header}
+              {([
+                { label: 'Patient ID',           sortKey: 'patient_id' },
+                { label: 'Patient Name',         sortKey: 'patient_name' },
+                { label: 'Date of Birth',        sortKey: 'dob' },
+                { label: 'Provider',             sortKey: 'provider' },
+                { label: 'Appt Date',            sortKey: 'appt_date' },
+                { label: 'Appt Status',          sortKey: 'appt_status' },
+                { label: 'Confirmation',         sortKey: 'confirmation' },
+                { label: 'Auth/Referral',        sortKey: null },
+                { label: 'Primary Insurance',    sortKey: 'primary_insurance' },
+                { label: 'Secondary Insurance',  sortKey: 'secondary_insurance' },
+                { label: 'Visit Type',           sortKey: 'visit_type' },
+                { label: 'Paid',                 sortKey: 'paid' },
+                { label: 'Actions',              sortKey: null },
+              ] as { label: string; sortKey: string | null }[]).map(({ label, sortKey }) => (
+                <th key={label} className="px-2 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-200/90">
+                  {sortKey ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSort(sortKey)}
+                      className="flex items-center gap-1 hover:text-cyan-300 transition-colors"
+                    >
+                      {label}
+                      <SortIcon sortKey={sortKey} />
+                    </button>
+                  ) : label}
                 </th>
               ))}
             </tr>

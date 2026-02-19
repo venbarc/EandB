@@ -18,7 +18,10 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     location: filters.location ?? '',
     auth: filters.auth ?? '',
     referral: filters.referral ?? '',
+    eligibility: filters.eligibility ?? '',
     insurances: filters.insurances ?? [],
+    sort: filters.sort ?? '',
+    direction: filters.direction,
   });
 
   const toggleDropdown = (name: string) => {
@@ -44,6 +47,9 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     if (form.location) params.location = form.location;
     if (form.auth) params.auth = form.auth;
     if (form.referral) params.referral = form.referral;
+    if (form.eligibility) params.eligibility = form.eligibility;
+    if (form.sort) params.sort = form.sort;
+    if (form.direction) params.direction = form.direction;
     if ((form.insurances ?? []).length > 0) params.insurances = form.insurances ?? [];
 
     router.get('/', params, { preserveState: true, preserveScroll: true });
@@ -59,7 +65,10 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
       location: '',
       auth: '',
       referral: '',
+      eligibility: '',
       insurances: [],
+      sort: '',
+      direction: undefined,
     });
     router.get('/', {}, { preserveState: false });
     setOpenDropdown(null);
@@ -159,7 +168,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
   };
 
   return (
-    <div className="rounded-2xl border border-white/15 bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm sm:p-5">
+    <div className="relative z-10 rounded-2xl border border-white/15 bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm sm:p-5">
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
           <div className="xl:col-span-1">
