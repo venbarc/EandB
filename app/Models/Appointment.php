@@ -120,6 +120,15 @@ class Appointment extends Model
         return $referral ? $query->where('referral_status', $referral) : $query;
     }
 
+    public function scopeForEligibility(Builder $query, ?string $eligibility): Builder
+    {
+        if (!$eligibility) return $query;
+        if ($eligibility === 'Verification Pending') {
+            return $query->whereIn('eligibility_status', ['Verification Pending', 'Verification Needed']);
+        }
+        return $query->where('eligibility_status', $eligibility);
+    }
+
     public function paDepartmentSubmission(): HasOne
     {
         return $this->hasOne(PaDepartmentSubmission::class);

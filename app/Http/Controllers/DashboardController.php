@@ -14,7 +14,8 @@ class DashboardController extends Controller
         // ── Filters ─────────────────────────────────────────────────────────────
         $filters = $request->only([
             'date', 'patient', 'insurances', 'provider',
-            'status', 'location', 'auth', 'referral',
+            'status', 'location', 'auth', 'referral', 'eligibility',
+            'sort', 'direction',
         ]);
 
         // ── Appointments query ───────────────────────────────────────────────────
@@ -28,8 +29,28 @@ class DashboardController extends Controller
             ->forLocation($filters['location'] ?? null)
             ->forAuth($filters['auth'] ?? null)
             ->forReferral($filters['referral'] ?? null)
-            ->orderBy('date_of_service', 'asc')
-            ->orderBy('patient_name', 'asc')
+            ->forEligibility($filters['eligibility'] ?? null)
+            ->when(
+                !empty($filters['sort']),
+                fn ($q) => $q->orderBy(
+                    match($filters['sort']) {
+                        'patient_id'          => 'id',
+                        'patient_name'        => 'patient_name',
+                        'dob'                 => 'patient_dob',
+                        'provider'            => 'provider',
+                        'appt_date'           => 'date_of_service',
+                        'appt_status'         => 'appointment_status',
+                        'confirmation'        => 'confirmation_method',
+                        'primary_insurance'   => 'primary_insurance',
+                        'secondary_insurance' => 'secondary_insurance',
+                        'visit_type'          => 'visit_type',
+                        'paid'                => 'payments',
+                        default               => 'date_of_service',
+                    },
+                    in_array($filters['direction'] ?? 'asc', ['asc', 'desc']) ? $filters['direction'] : 'asc'
+                ),
+                fn ($q) => $q->orderBy('date_of_service', 'asc')->orderBy('patient_name', 'asc')
+            )
             ->paginate(20)
             ->withQueryString()
             ->through(fn (Appointment $a) => $this->transformAppointment($a));

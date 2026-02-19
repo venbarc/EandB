@@ -25,7 +25,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, appointments, filters, fil
       <Header filters={filters} />
       <main className="relative z-10 mx-auto w-full max-w-[1920px] space-y-7 px-4 py-8 sm:px-6 lg:px-8">
         <section>
-          <StatsSection stats={stats} />
+          <StatsSection stats={stats} filters={filters} />
         </section>
         <section>
           <Filters filters={filters} filterOptions={filterOptions} />
