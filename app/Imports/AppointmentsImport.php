@@ -39,6 +39,12 @@ class AppointmentsImport implements ToModel, WithStartRow, WithChunkReading
      * 19  Modification History
      * 20  Payment Method
      */
+
+    /** Count of rows inserted this run. */
+    private int $importedCount = 0;
+
+    public function getImportedCount(): int { return $this->importedCount; }
+
     public function startRow(): int
     {
         return 5; // skip title, blank, headers, totals
@@ -61,6 +67,10 @@ class AppointmentsImport implements ToModel, WithStartRow, WithChunkReading
             return null;
         }
 
+        $invoiceNo = trim((string) ($row[9] ?? '')) ?: null;
+
+        $this->importedCount++;
+
         $ampm = strtoupper(trim((string) ($row[3] ?? '')));
         $appointmentTime = in_array($ampm, ['AM', 'PM']) ? $ampm : null;
 
@@ -78,7 +88,7 @@ class AppointmentsImport implements ToModel, WithStartRow, WithChunkReading
             'provider'               => trim((string) ($row[6] ?? '')),
             'visit_type'             => trim((string) ($row[7] ?? '')),
             'location'               => trim((string) ($row[8] ?? '')) ?: null,
-            'invoice_no'             => trim((string) ($row[9] ?? '')) ?: null,
+            'invoice_no'             => $invoiceNo,
             'invoice_status'         => trim((string) ($row[10] ?? '')) ?: null,
             'current_responsibility' => trim((string) ($row[11] ?? '')) ?: null,
             'claim_created'          => strtolower(trim((string) ($row[12] ?? ''))) === 'yes',

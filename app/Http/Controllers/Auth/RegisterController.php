@@ -22,9 +22,14 @@ class RegisterController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => [
+                'required', 'string', 'email', 'max:255', 'unique:users,email',
+                'regex:/^[^@]+@(cfoutsourcing\.com|cfstaffingsolutions\.com)$/i',
+            ],
             'password' => ['required', 'confirmed', Password::defaults()],
+        ], [
+            'email.regex' => 'Only @cfoutsourcing.com and @cfstaffingsolutions.com email addresses are accepted.',
         ]);
 
         $user = User::create([

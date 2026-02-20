@@ -61,8 +61,11 @@ export default function Register() {
                         value={data.email}
                         onChange={(event) => setData('email', event.target.value)}
                         className="w-full rounded-xl border border-white/20 bg-slate-900/70 px-3.5 py-2.5 text-sm text-slate-50 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
-                        placeholder="you@example.com"
+                        placeholder="you@cfoutsourcing.com"
                     />
+                    <p className="mt-1.5 text-xs text-slate-400">
+                        Accepted domains: @cfoutsourcing.com · @cfstaffingsolutions.com
+                    </p>
                     {errors.email && <p className="mt-1 text-xs text-red-300">{errors.email}</p>}
                 </div>
 

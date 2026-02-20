@@ -100,3 +100,15 @@ export interface FilterOptions {
   insurances: string[];
   statuses: string[];
 }
+
+export interface ImportDuplicate {
+  patient_name: string;
+  date_of_service: string;
+  invoice_no: string | null;
+}
+
+export interface ImportResult {
+  imported: number;
+  skipped: number;
+  duplicates: ImportDuplicate[];
+}
