@@ -1,5 +1,5 @@
 import React from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
   LayoutDashboard,
   MessageSquare,
@@ -7,8 +7,10 @@ import {
   Loader2,
   Sparkles,
   LogOut,
+  Upload,
 } from 'lucide-react';
-import { FilterState } from '@/types';
+import { FilterState, ImportResult } from '@/types';
+import { ImportModal } from '@/Components/ImportModal';
 
 interface HeaderProps {
   filters?: FilterState;
@@ -16,6 +18,19 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
   const [loggingOut, setLoggingOut] = React.useState(false);
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+
+  const { props } = usePage<{ flash?: { importResult?: ImportResult } }>();
+  const importResult = props.flash?.importResult ?? null;
+
+  // Auto-open modal to show results when a fresh importResult arrives.
+  const prevResultRef = React.useRef(importResult);
+  React.useEffect(() => {
+    if (importResult && importResult !== prevResultRef.current) {
+      setIsImportOpen(true);
+    }
+    prevResultRef.current = importResult;
+  }, [importResult]);
 
   const buildExportUrl = (base: string) => {
     const params = new URLSearchParams();
@@ -41,6 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-900/55 shadow-[0_12px_28px_-20px_rgba(2,12,27,0.95)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-8">
         <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 py-3">
@@ -74,6 +90,14 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
             <button className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white">
               <MessageSquare size={15} />
               Feedback
+            </button>
+
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800/80"
+            >
+              <Upload size={15} />
+              Import CSV
             </button>
 
             <a
@@ -122,5 +146,12 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
         </div>
       </div>
     </header>
+
+    <ImportModal
+      isOpen={isImportOpen}
+      onClose={() => setIsImportOpen(false)}
+      importResult={importResult}
+    />
+    </>
   );
 };

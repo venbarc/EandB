@@ -75,9 +75,18 @@ class AppointmentController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
         ]);
 
-        Excel::import(new AppointmentsImport(), $request->file('file'));
+        $importer = new AppointmentsImport();
+        Excel::import($importer, $request->file('file'));
 
-        return back()->with('success', 'Appointments imported successfully.');
+        $imported = $importer->getImportedCount();
+
+        return back()
+            ->with('success', "Imported {$imported} appointment(s) successfully.")
+            ->with('importResult', [
+                'imported' => $imported,
+                'skipped'  => 0,
+                'duplicates' => [],
+            ]);
     }
 
     /** Export all appointments as xlsx. */
