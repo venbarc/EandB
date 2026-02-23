@@ -129,6 +129,7 @@ class AppointmentController extends Controller
     private function appointmentUpdateRules(): array
     {
         return [
+            'primary_insurance'     => ['nullable', 'string', 'max:200'],
             'provider_credentialed' => ['nullable', 'boolean'],
             'eligibility_status'    => ['nullable', 'string', 'max:100'],
             'collection_status'     => ['nullable', 'string', 'max:100'],

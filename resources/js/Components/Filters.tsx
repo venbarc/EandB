@@ -30,16 +30,6 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
-  const toggleInsurance = (insurance: string) => {
-    const selected = form.insurances ?? [];
-    setForm((prev) => ({
-      ...prev,
-      insurances: selected.includes(insurance)
-        ? selected.filter((item) => item !== insurance)
-        : [...selected, insurance],
-    }));
-  };
-
   const handleFilter = () => {
     const params: Record<string, string | string[]> = {};
     if (form.dateFrom) params.dateFrom = form.dateFrom;
@@ -132,47 +122,6 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     </div>
   );
 
-  const InsuranceDropdown: React.FC = () => {
-    const selected = form.insurances ?? [];
-    return (
-      <div className="relative">
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-300">Insurance Type</label>
-        <button
-          type="button"
-          onClick={() => toggleDropdown('insuranceType')}
-          className={`${fieldClass} flex items-center justify-between text-left`}
-        >
-          <span className="truncate">{selected.length > 0 ? `${selected.length} selected` : 'Select...'}</span>
-          <ChevronDown size={14} className="shrink-0 text-slate-400" />
-        </button>
-
-        {openDropdown === 'insuranceType' && (
-          <div className="absolute z-50 mt-1.5 max-h-56 w-full overflow-y-auto rounded-xl border border-white/15 bg-slate-900 p-1 shadow-xl">
-            {filterOptions.insurances.map((option) => (
-              <button
-                type="button"
-                key={option}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm text-slate-200 transition hover:bg-white/10"
-                onClick={() => toggleInsurance(option)}
-              >
-                <span
-                  className={`flex h-4 w-4 items-center justify-center rounded border ${
-                    selected.includes(option)
-                      ? 'border-cyan-400 bg-cyan-400 text-slate-900'
-                      : 'border-white/30 bg-slate-900'
-                  }`}
-                >
-                  {selected.includes(option) && <Check size={10} />}
-                </span>
-                <span className="truncate">{option}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="relative z-10 rounded-2xl border border-white/15 bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm sm:p-5">
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
@@ -221,10 +170,9 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
             <Search size={15} className="pointer-events-none absolute left-3 top-[34px] text-slate-400" />
           </div>
 
-          <InsuranceDropdown />
           <FilterDropdown label="Location" name="location" options={filterOptions.locations} value={form.location ?? ''} />
           <FilterDropdown label="Provider" name="provider" options={filterOptions.providers} value={form.provider ?? ''} />
-          <FilterDropdown label="Appt Status" name="status" options={filterOptions.statuses} value={form.status ?? ''} />
+          <FilterDropdown label="Appt Reason" name="status" options={filterOptions.statuses} value={form.status ?? ''} />
           <FilterDropdown label="Auth Required" name="auth" options={['Auth Required', 'N/A']} value={form.auth ?? ''} />
           <FilterDropdown label="Referral Required" name="referral" options={['Required', 'N/A']} value={form.referral ?? ''} />
           <FilterDropdown label="E&B Status" name="eligibility" options={['Eligible', 'Not Eligible', 'Verification Pending']} value={form.eligibility ?? ''} />

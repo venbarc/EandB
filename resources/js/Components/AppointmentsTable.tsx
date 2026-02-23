@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Appointment, FilterState, PaginationMeta } from '@/types';
-import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Loader2 } from 'lucide-react';
 
 interface AppointmentsTableProps {
   data: Appointment[];
@@ -33,6 +33,21 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
   onUpdateRecord,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingInsurance, setEditingInsurance] = useState<{ id: string; value: string } | null>(null);
+  const [savingInsuranceId, setSavingInsuranceId] = useState<string | null>(null);
+
+  const handleInsuranceSave = (rowId: string) => {
+    if (!editingInsurance || editingInsurance.id !== rowId) return;
+    const value = editingInsurance.value.trim();
+    setEditingInsurance(null);
+    if (!value) return;
+    setSavingInsuranceId(rowId);
+    router.patch(`/appointments/${rowId}`, { primary_insurance: value }, {
+      preserveState: true,
+      preserveScroll: true,
+      onFinish: () => setSavingInsuranceId(null),
+    });
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -86,7 +101,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                 { label: 'Date of Birth',        sortKey: 'dob' },
                 { label: 'Provider',             sortKey: 'provider' },
                 { label: 'Appt Date',            sortKey: 'appt_date' },
-                { label: 'Appt Status',          sortKey: 'appt_status' },
+                { label: 'Appt Reason',          sortKey: 'Appt_Reason' },
                 { label: 'Confirmation',         sortKey: 'confirmation' },
                 { label: 'Auth/Referral',        sortKey: null },
                 { label: 'E&B Status',           sortKey: null },
@@ -164,8 +179,34 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                         {row.eligibilityStatus}
                       </span>
                     </td>
-                    <td className="px-2 py-4 text-sm text-slate-100 truncate" title={row.insurance.primary}>
-                      {row.insurance.primary}
+                    <td className="px-2 py-4 text-sm text-slate-100">
+                      {editingInsurance?.id === row.id ? (
+                        <input
+                          autoFocus
+                          value={editingInsurance.value}
+                          onChange={(e) => setEditingInsurance({ id: row.id, value: e.target.value })}
+                          onBlur={() => handleInsuranceSave(row.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleInsuranceSave(row.id);
+                            if (e.key === 'Escape') setEditingInsurance(null);
+                          }}
+                          className="w-full min-w-[120px] rounded-lg border border-cyan-400/50 bg-slate-800 px-2 py-0.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingInsurance({ id: row.id, value: row.insurance.primary })}
+                          className="group flex items-center gap-1.5 rounded px-1 py-0.5 text-left transition hover:bg-slate-700/50"
+                          title="Click to edit"
+                        >
+                          <span className="truncate">{row.insurance.primary}</span>
+                          {savingInsuranceId === row.id ? (
+                            <Loader2 size={11} className="shrink-0 animate-spin text-cyan-400" />
+                          ) : (
+                            <Pencil size={11} className="shrink-0 text-slate-500 opacity-0 transition group-hover:opacity-100" />
+                          )}
+                        </button>
+                      )}
                     </td>
                     <td className="px-2 py-4 text-sm text-slate-100 truncate" title={row.insurance.secondary || 'N/A'}>
                       {row.insurance.secondary || 'N/A'}
