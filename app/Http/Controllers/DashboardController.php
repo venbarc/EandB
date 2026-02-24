@@ -14,13 +14,12 @@ class DashboardController extends Controller
         // ── Filters ─────────────────────────────────────────────────────────────
         $filters = $request->only([
             'dateFrom', 'dateTo', 'ampm', 'patient', 'insurances', 'provider',
-            'status', 'location', 'auth', 'referral', 'eligibility',
+            'status', 'location', 'auth', 'referral', 'eligibility', 'insuranceType',
             'sort', 'direction',
         ]);
 
-        // ── Appointments query ───────────────────────────────────────────────────
-        $appointments = Appointment::query()
-            ->with('paDepartmentSubmission')
+        // ── Shared filtered base query ───────────────────────────────────────────
+        $baseQuery = Appointment::query()
             ->forDateRange($filters['dateFrom'] ?? null, $filters['dateTo'] ?? null)
             ->forAmPm($filters['ampm'] ?? null)
             ->forPatient($filters['patient'] ?? null)
@@ -31,6 +30,11 @@ class DashboardController extends Controller
             ->forAuth($filters['auth'] ?? null)
             ->forReferral($filters['referral'] ?? null)
             ->forEligibility($filters['eligibility'] ?? null)
+            ->forInsuranceType($filters['insuranceType'] ?? null);
+
+        // ── Appointments query ───────────────────────────────────────────────────
+        $appointments = (clone $baseQuery)
+            ->with('paDepartmentSubmission')
             ->when(
                 !empty($filters['sort']),
                 fn ($q) => $q->orderBy(
@@ -56,8 +60,8 @@ class DashboardController extends Controller
             ->withQueryString()
             ->through(fn (Appointment $a) => $this->transformAppointment($a));
 
-        // ── Live stats ───────────────────────────────────────────────────────────
-        $aggregates = Appointment::query()
+        // ── Live stats (reflects active filters) ─────────────────────────────────
+        $aggregates = (clone $baseQuery)
             ->selectRaw('COUNT(*) AS total_appointments')
             ->selectRaw("SUM(CASE WHEN eligibility_status = 'Eligible' THEN 1 ELSE 0 END) AS eligible_count")
             ->selectRaw("SUM(CASE WHEN eligibility_status = 'Not Eligible' THEN 1 ELSE 0 END) AS not_eligible_count")
@@ -79,8 +83,9 @@ class DashboardController extends Controller
         $filterOptions = [
             'providers'  => Appointment::select('provider')->distinct()->orderBy('provider')->pluck('provider'),
             'locations'  => Appointment::select('location')->whereNotNull('location')->distinct()->orderBy('location')->pluck('location'),
-            'insurances' => Appointment::select('primary_insurance')->whereNotNull('primary_insurance')->distinct()->orderBy('primary_insurance')->pluck('primary_insurance'),
-            'statuses'   => Appointment::select('appointment_status')->distinct()->orderBy('appointment_status')->pluck('appointment_status'),
+            'insurances'     => Appointment::select('primary_insurance')->whereNotNull('primary_insurance')->distinct()->orderBy('primary_insurance')->pluck('primary_insurance'),
+            'statuses'       => Appointment::select('appointment_status')->distinct()->orderBy('appointment_status')->pluck('appointment_status'),
+            'insuranceTypes' => ['Medicare', 'Medicare HMO / PPO', 'Commercial', 'Medicaid', "Worker's Comp"],
         ];
 
         return Inertia::render('Dashboard', [
@@ -133,6 +138,7 @@ class DashboardController extends Controller
                 'secondary' => $a->secondary_insurance,
                 'status'    => $a->insurance_status ?? 'N/A',
             ],
+            'insuranceType'        => $a->insurance_type ?? '',
             'visitType'            => $a->visit_type ?? 'N/A',
             'paidAmount'           => (float) $a->payments,
             'pscCode'              => $a->psc_code ?? '',

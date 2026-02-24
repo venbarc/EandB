@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\AppointmentsExport;
 use App\Exports\AvailityExport;
 use App\Exports\PaDeptExport;
-use App\Imports\AppointmentsImport;
+use App\Jobs\ImportAppointmentsJob;
 use App\Jobs\SyncAppointmentsJob;
 use App\Models\Appointment;
 use App\Services\AppointmentSyncService;
@@ -72,27 +72,33 @@ class AppointmentController extends Controller
         return back()->with('success', 'PSC updated successfully.');
     }
 
-    /** Import appointments from an uploaded xlsx/csv file. */
+    /** Store the uploaded file and dispatch an async background job to process it. */
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:51200'],
         ]);
 
-        $importer = new AppointmentsImport();
-        Excel::import($importer, $request->file('file'));
+        $path = $request->file('file')->store('imports');
 
-        $imported   = $importer->getImportedCount();
-        $skipped    = $importer->getSkippedCount();
-        $duplicates = $importer->getDuplicates();
+        Cache::put(ImportAppointmentsJob::CACHE_KEY, [
+            'state'      => 'running',
+            'chunk'      => 0,
+            'imported'   => 0,
+            'skipped'    => 0,
+            'started_at' => now()->toIso8601String(),
+        ], 3600);
 
-        return back()
-            ->with('success', "Imported {$imported} appointment(s). {$skipped} duplicate(s) skipped.")
-            ->with('importResult', [
-                'imported'   => $imported,
-                'skipped'    => $skipped,
-                'duplicates' => $duplicates,
-            ]);
+        ImportAppointmentsJob::dispatch($path);
+
+        return back()->with('success', 'Import started — records are being processed in the background.');
+    }
+
+    /** Return current import progress from cache (polled by the frontend). */
+    public function importProgress(): JsonResponse
+    {
+        $progress = Cache::get(ImportAppointmentsJob::CACHE_KEY, ['state' => 'idle']);
+        return response()->json($progress);
     }
 
     /** Dispatch a background job to pull appointments from the external API in batches. */
@@ -161,6 +167,8 @@ class AppointmentController extends Controller
     {
         return [
             'primary_insurance'     => ['nullable', 'string', 'max:200'],
+            'secondary_insurance'   => ['nullable', 'string', 'max:200'],
+            'insurance_type'        => ['nullable', 'string', 'max:100'],
             'provider_credentialed' => ['nullable', 'boolean'],
             'eligibility_status'    => ['nullable', 'string', 'max:100'],
             'collection_status'     => ['nullable', 'string', 'max:100'],

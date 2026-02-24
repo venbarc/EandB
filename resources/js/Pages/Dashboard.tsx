@@ -18,9 +18,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, appointments, filters, fil
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-700 pb-20 text-slate-100">
-      <div className="pointer-events-none absolute -left-24 top-16 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-8 right-2 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-teal-50 pb-20 text-slate-800">
+      <div className="pointer-events-none absolute -left-24 top-16 h-64 w-64 rounded-full bg-teal-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-8 right-2 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
 
       <Header filters={filters} />
       <main className="relative z-10 mx-auto w-full max-w-[1920px] space-y-7 px-4 py-8 sm:px-6 lg:px-8">

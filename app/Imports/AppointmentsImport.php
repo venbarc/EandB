@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Appointment;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
@@ -12,50 +13,72 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
 {
     /**
-     * The Excel layout:
-     * Row 1  – "General Visit Report" title
-     * Row 2  – empty
-     * Row 3  – column headers
-     * Row 4  – totals row  ← we skip rows 1-4 via startRow()
-     * Row 5+ – actual patient records
+     * PTEverywhere export layout (headers in row 1, data from row 2):
      *
-     * Column mapping (1-based):
-     *  2  Patient Name
-     *  3  Date of Service
-     *  4  TIME (values: AM or PM)
-     *  5  E&B Status (Eligible, Not Eligible, Verification Pending; empty = Verification Pending)
-     *  6  Appointment Status
-     *  7  Provider
-     *  8  Service (visit type)
-     *  9  Location
-     * 10  Invoice No.
-     * 11  Invoice Status
-     * 12  Current Responsibility
-     * 13  Claim Created (Yes/No)
-     * 14  Charges
-     * 15  Payments
-     * 16  Units
-     * 17  Created by
-     * 18  Cancellation Reason
-     * 19  Modification History
-     * 20  Payment Method
+     * Column mapping (0-based index):
+     *  0  Patient Name
+     *  1  Date of Service
+     *  2  Appointment Status
+     *  3  Provider
+     *  4  Service (visit type)
+     *  5  Location
+     *  6  Invoice No.
+     *  7  Invoice Status
+     *  8  Current Responsibility
+     *  9  Claim Created (Yes/No)
+     * 10  Charges
+     * 11  Payments
+     * 12  Units
+     * 13  Created by
+     * 14  Cancellation Reason
+     * 15  Modification History
      */
 
-    private int $importedCount = 0;
-    private int $skippedCount  = 0;
-    /** @var array<int, array{patient_name: string, date_of_service: string, invoice_no: string|null}> */
-    private array $duplicates  = [];
+    /**
+     * Source-system fields safe to overwrite on duplicate (upsert update columns).
+     * Deliberately excludes user-set fields: eligibility_status, primary_insurance,
+     * auth_status, referral_status, collection_status, notes, psc_*, etc.
+     */
+    private const UPSERT_UPDATE_COLUMNS = [
+        'appointment_status',
+        'invoice_no',
+        'invoice_status',
+        'current_responsibility',
+        'claim_created',
+        'charges',
+        'payments',
+        'units',
+        'visit_type',
+        'location',
+        'provider',
+        'cancellation_reason',
+        'modification_history',
+        'created_by',
+        'updated_at',
+    ];
+
+    private int     $importedCount = 0;
+    private int     $chunkCount    = 0;
+    private ?string $cacheKey      = null;
 
     public function getImportedCount(): int { return $this->importedCount; }
-    public function getSkippedCount(): int  { return $this->skippedCount; }
-    public function getDuplicates(): array  { return $this->duplicates; }
+    public function getChunkCount(): int    { return $this->chunkCount; }
 
-    public function startRow(): int  { return 5; }
-    public function chunkSize(): int { return 500; }
+    /** Set a cache key so each processed chunk updates the import progress. */
+    public function withCacheKey(string $key): static
+    {
+        $this->cacheKey = $key;
+        return $this;
+    }
+
+    public function startRow(): int  { return 2; }
+    public function chunkSize(): int { return 2000; }
 
     public function collection(Collection $rows): void
     {
-        // ── 1. Parse every row in the chunk into candidate records ──────────
+        $this->chunkCount++;
+
+        // ── 1. Parse rows into candidate records ─────────────────────────────
         $candidates = [];
         foreach ($rows as $row) {
             $parsed = $this->parseRow($row->toArray());
@@ -68,29 +91,29 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
             return;
         }
 
-        // ── 2. Fetch existing keys in one bulk query ─────────────────────────
-        $existingKeys = $this->fetchExistingKeys($candidates);
+        // ── 2. Add timestamps and dedup_hash to each candidate ────────────────
+        $now  = now()->toDateTimeString();
+        $rows = array_map(function (array $c) use ($now): array {
+            $c['dedup_hash']  = $this->makeHash($c['patient_name'], $c['date_of_service'] ?? null, $c['appointment_status'] ?? null);
+            $c['created_at']  = $now;
+            $c['updated_at']  = $now;
+            return $c;
+        }, $candidates);
 
-        // ── 3. Insert new records, skip duplicates ───────────────────────────
-        foreach ($candidates as $candidate) {
-            $key = $this->makeKey(
-                $candidate['patient_name'],
-                $candidate['date_of_service']
-            );
+        // ── 3. Upsert entire chunk — one SQL statement, zero N+1 ──────────────
+        Appointment::upsert($rows, ['dedup_hash'], self::UPSERT_UPDATE_COLUMNS);
 
-            if (isset($existingKeys[$key])) {
-                $this->skippedCount++;
-                $this->duplicates[] = [
-                    'patient_name'    => $candidate['patient_name'],
-                    'date_of_service' => $candidate['date_of_service'],
-                    'invoice_no'      => $candidate['invoice_no'],
-                ];
-            } else {
-                Appointment::create($candidate);
-                $this->importedCount++;
-                // Prevent intra-chunk duplicates from inserting twice
-                $existingKeys[$key] = true;
-            }
+        // Approximate imported count: rows processed in this chunk
+        $this->importedCount += count($rows);
+
+        // ── 4. Report progress to cache so the frontend can poll it ───────────
+        if ($this->cacheKey !== null) {
+            Cache::put($this->cacheKey, [
+                'state'    => 'running',
+                'chunk'    => $this->chunkCount,
+                'imported' => $this->importedCount,
+                'skipped'  => 0,
+            ], 3600);
         }
     }
 
@@ -98,81 +121,43 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
 
     private function parseRow(array $row): ?array
     {
-        $name = trim((string) ($row[1] ?? ''));
+        $name = trim((string) ($row[0] ?? ''));
         if ($name === '' || strtolower($name) === 'total') {
             return null;
         }
 
-        $date = $this->parseDate($row[2] ?? null);
+        $date = $this->parseDate($row[1] ?? null);
         if (! $date) {
             return null;
         }
 
-        $ampm          = strtoupper(trim((string) ($row[3] ?? '')));
-        $ebStatus      = trim((string) ($row[4] ?? ''));
-        $invoiceNo     = trim((string) ($row[9] ?? '')) ?: null;
+        $invoiceNo = trim((string) ($row[6] ?? '')) ?: null;
 
         return [
             'patient_name'           => $name,
-            'patient_dob'            => null, // CSV layout has no DOB column
+            'patient_dob'            => null,
             'date_of_service'        => $date,
-            'appointment_time'       => in_array($ampm, ['AM', 'PM']) ? $ampm : null,
-            'eligibility_status'     => in_array($ebStatus, ['Eligible', 'Not Eligible', 'Verification Pending'])
-                                            ? $ebStatus
-                                            : 'Verification Pending',
-            'appointment_status'     => trim((string) ($row[5] ?? 'New')),
-            'provider'               => trim((string) ($row[6] ?? '')),
-            'visit_type'             => trim((string) ($row[7] ?? '')),
-            'location'               => trim((string) ($row[8] ?? '')) ?: null,
+            'eligibility_status'     => 'Verification Pending',
+            'appointment_status'     => trim((string) ($row[2] ?? 'New')),
+            'provider'               => trim((string) ($row[3] ?? '')),
+            'visit_type'             => trim((string) ($row[4] ?? '')),
+            'location'               => trim((string) ($row[5] ?? '')) ?: null,
             'invoice_no'             => $invoiceNo,
-            'invoice_status'         => trim((string) ($row[10] ?? '')) ?: null,
-            'current_responsibility' => trim((string) ($row[11] ?? '')) ?: null,
-            'claim_created'          => strtolower(trim((string) ($row[12] ?? ''))) === 'yes',
-            'charges'                => is_numeric($row[13] ?? null) ? (float) $row[13] : 0,
-            'payments'               => is_numeric($row[14] ?? null) ? (float) $row[14] : 0,
-            'units'                  => is_numeric($row[15] ?? null) ? (int) $row[15] : 0,
-            'created_by'             => trim((string) ($row[16] ?? '')) ?: null,
-            'cancellation_reason'    => trim((string) ($row[17] ?? '')) ?: null,
-            'modification_history'   => trim((string) ($row[18] ?? '')) ?: null,
-            'payment_method'         => trim((string) ($row[19] ?? '')) ?: null,
+            'invoice_status'         => trim((string) ($row[7] ?? '')) ?: null,
+            'current_responsibility' => trim((string) ($row[8] ?? '')) ?: null,
+            'claim_created'          => strtolower(trim((string) ($row[9] ?? ''))) === 'yes',
+            'charges'                => is_numeric($row[10] ?? null) ? (float) $row[10] : 0,
+            'payments'               => is_numeric($row[11] ?? null) ? (float) $row[11] : 0,
+            'units'                  => is_numeric($row[12] ?? null) ? (int) $row[12] : 0,
+            'created_by'             => trim((string) ($row[13] ?? '')) ?: null,
+            'cancellation_reason'    => trim((string) ($row[14] ?? '')) ?: null,
+            'modification_history'   => trim((string) ($row[15] ?? '')) ?: null,
         ];
     }
 
-    /**
-     * Build a "name|dos" => true hashmap for candidates that already exist in DB.
-     *
-     * Dedup criteria: patient_name + date_of_service only (DOB excluded).
-     */
-    private function fetchExistingKeys(array $candidates): array
+    private function makeHash(string $name, ?string $dos, ?string $status): string
     {
-        $existing = [];
-
-        if (empty($candidates)) {
-            return $existing;
-        }
-
-        $q     = Appointment::query();
-        $first = true;
-        foreach ($candidates as $c) {
-            $method = $first ? 'where' : 'orWhere';
-            $q->$method(function ($sq) use ($c) {
-                $sq->where('patient_name', $c['patient_name'])
-                   ->where('date_of_service', $c['date_of_service']);
-            });
-            $first = false;
-        }
-        $q->select(['patient_name', 'date_of_service'])
-          ->get()
-          ->each(function ($row) use (&$existing) {
-              $existing[$this->makeKey($row->patient_name, $row->date_of_service->format('Y-m-d'))] = true;
-          });
-
-        return $existing;
-    }
-
-    private function makeKey(string $name, string $dos): string
-    {
-        return strtolower(trim($name)) . '|' . $dos;
+        return md5(strtolower(trim($name)) . '|' . ($dos ?? 'null-date') . '|' . strtolower(trim($status ?? '')));
     }
 
     private function parseDate(mixed $value): ?string
