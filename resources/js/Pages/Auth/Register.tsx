@@ -27,7 +27,7 @@ export default function Register() {
             footer={
                 <p>
                     Already have an account?{' '}
-                    <Link href="/login" className="font-semibold text-cyan-300 hover:text-cyan-200">
+                    <Link href="/login" className="font-semibold text-teal-600 hover:text-teal-500">
                         Login
                     </Link>
                 </p>
@@ -35,7 +35,7 @@ export default function Register() {
         >
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700">
                         Full name
                     </label>
                     <input
@@ -44,14 +44,14 @@ export default function Register() {
                         autoComplete="name"
                         value={data.name}
                         onChange={(event) => setData('name', event.target.value)}
-                        className="w-full rounded-xl border border-white/20 bg-slate-900/70 px-3.5 py-2.5 text-sm text-slate-50 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-300/30"
                         placeholder="Juan Dela Cruz"
                     />
-                    {errors.name && <p className="mt-1 text-xs text-red-300">{errors.name}</p>}
+                    {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
                         Email
                     </label>
                     <input
@@ -60,17 +60,17 @@ export default function Register() {
                         autoComplete="email"
                         value={data.email}
                         onChange={(event) => setData('email', event.target.value)}
-                        className="w-full rounded-xl border border-white/20 bg-slate-900/70 px-3.5 py-2.5 text-sm text-slate-50 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-300/30"
                         placeholder="you@cfoutsourcing.com"
                     />
                     <p className="mt-1.5 text-xs text-slate-400">
                         Accepted domains: @cfoutsourcing.com · @cfstaffingsolutions.com
                     </p>
-                    {errors.email && <p className="mt-1 text-xs text-red-300">{errors.email}</p>}
+                    {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
                         Password
                     </label>
                     <div className="relative">
@@ -86,17 +86,17 @@ export default function Register() {
                         <button
                             type="button"
                             onClick={() => setShowPassword((value) => !value)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                             tabIndex={-1}
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
-                    {errors.password && <p className="mt-1 text-xs text-red-300">{errors.password}</p>}
+                    {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="password_confirmation" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="password_confirmation" className="mb-1.5 block text-sm font-medium text-slate-700">
                         Confirm password
                     </label>
                     <div className="relative">
@@ -112,7 +112,7 @@ export default function Register() {
                         <button
                             type="button"
                             onClick={() => setShowPasswordConfirm((value) => !value)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                             tabIndex={-1}
                         >
                             {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

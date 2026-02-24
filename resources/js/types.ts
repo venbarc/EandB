@@ -37,6 +37,7 @@ export interface Appointment {
   charges: number;
   invoiceStatus: string;
   location: string;
+  insuranceType: string;
   collectionStatus: string;
   providerCredentialed: boolean | null;
   collectedAmount: number | null;
@@ -90,6 +91,7 @@ export type FilterState = {
   auth?: string;
   referral?: string;
   eligibility?: string;
+  insuranceType?: string;
   sort?: string;
   direction?: 'asc' | 'desc';
 };
@@ -99,6 +101,7 @@ export interface FilterOptions {
   locations: string[];
   insurances: string[];
   statuses: string[];
+  insuranceTypes: string[];
 }
 
 export interface ImportDuplicate {

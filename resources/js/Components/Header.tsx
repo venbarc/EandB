@@ -24,20 +24,30 @@ interface SyncProgress {
   error?:    string;
 }
 
+interface ImportProgress {
+  state: 'idle' | 'running' | 'complete' | 'error';
+  chunk?:    number;
+  imported?: number;
+  error?:    string;
+}
+
 interface HeaderProps {
   filters?: FilterState;
 }
 
 export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
-  const [loggingOut, setLoggingOut]     = React.useState(false);
-  const [isImportOpen, setIsImportOpen] = React.useState(false);
-  const [isSyncing, setIsSyncing]       = React.useState(false);
-  const [toast, setToast]               = React.useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [syncProgress, setSyncProgress] = React.useState<SyncProgress | null>(null);
+  const [loggingOut, setLoggingOut]         = React.useState(false);
+  const [isImportOpen, setIsImportOpen]     = React.useState(false);
+  const [isSyncing, setIsSyncing]           = React.useState(false);
+  const [toast, setToast]                   = React.useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [syncProgress, setSyncProgress]     = React.useState<SyncProgress | null>(null);
+  const [importProgress, setImportProgress] = React.useState<ImportProgress | null>(null);
 
-  const toastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollRef       = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastBatchRef  = React.useRef<number>(0);
+  const toastTimerRef      = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef            = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const importPollRef      = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastBatchRef       = React.useRef<number>(0);
+  const lastImportChunkRef = React.useRef<number>(0);
 
   const { props } = usePage<{ flash?: { success?: string; importResult?: ImportResult } }>();
   const importResult   = props.flash?.importResult ?? null;
@@ -62,16 +72,16 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
     prevResultRef.current = importResult;
   }, [importResult]);
 
-  // ── Flash success toast — only when polling is NOT active ────────────────
+  // ── Flash success toast — only when neither poll is active ───────────────
   const prevSuccessRef = React.useRef(successMessage);
   React.useEffect(() => {
-    if (successMessage && successMessage !== prevSuccessRef.current && !pollRef.current) {
+    if (successMessage && successMessage !== prevSuccessRef.current && !pollRef.current && !importPollRef.current) {
       showToast(successMessage, 'success', 7000);
     }
     prevSuccessRef.current = successMessage;
   }, [successMessage, showToast]);
 
-  // ── Polling ──────────────────────────────────────────────────────────────
+  // ── Sync polling ─────────────────────────────────────────────────────────
   const stopPolling = React.useCallback(() => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
@@ -110,7 +120,6 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
             'success',
             8000,
           );
-          // Partial reload — Header stays mounted so the toast remains visible
           router.reload({ only: ['appointments', 'stats'] });
         } else if (data.state === 'error') {
           stopPolling();
@@ -128,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
     pollRef.current = setInterval(poll, 3000);
   }, [stopPolling, showToast]);
 
-  // On mount: resume polling if a sync is already in progress (e.g. after page refresh)
+  // On mount: resume sync polling if already in progress (e.g. after page refresh)
   React.useEffect(() => {
     const checkOnMount = async () => {
       try {
@@ -144,8 +153,70 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
     checkOnMount();
   }, [startPolling]);
 
-  // Cleanup interval on unmount
+  // ── Import polling ───────────────────────────────────────────────────────
+  const stopImportPolling = React.useCallback(() => {
+    if (importPollRef.current) {
+      clearInterval(importPollRef.current);
+      importPollRef.current = null;
+    }
+  }, []);
+
+  const startImportPolling = React.useCallback(() => {
+    stopImportPolling();
+    lastImportChunkRef.current = 0;
+
+    const poll = async () => {
+      try {
+        const res = await fetch('/appointments/import-progress', { credentials: 'same-origin' });
+        if (!res.ok) return;
+
+        const data: ImportProgress = await res.json();
+        setImportProgress(data.state === 'idle' ? null : data);
+
+        if (data.state === 'complete') {
+          stopImportPolling();
+          setImportProgress(null);
+          showToast(
+            `Import complete — ${(data.imported ?? 0).toLocaleString()} records processed`,
+            'success',
+            8000,
+          );
+          router.reload({ only: ['appointments', 'stats'] });
+        } else if (data.state === 'error') {
+          stopImportPolling();
+          setImportProgress(null);
+          showToast(`Import failed: ${data.error ?? 'Unknown error'}`, 'error', 10000);
+        } else if (data.state === 'idle') {
+          stopImportPolling();
+        }
+      } catch {
+        // Ignore transient fetch errors
+      }
+    };
+
+    poll();
+    importPollRef.current = setInterval(poll, 3000);
+  }, [stopImportPolling, showToast]);
+
+  // On mount: resume import polling if already in progress
+  React.useEffect(() => {
+    const checkOnMount = async () => {
+      try {
+        const res = await fetch('/appointments/import-progress', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data: ImportProgress = await res.json();
+        if (data.state === 'running') {
+          setImportProgress(data);
+          startImportPolling();
+        }
+      } catch { /* ignore */ }
+    };
+    checkOnMount();
+  }, [startImportPolling]);
+
+  // Cleanup intervals on unmount
   React.useEffect(() => stopPolling, [stopPolling]);
+  React.useEffect(() => stopImportPolling, [stopImportPolling]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const buildExportUrl = (base: string) => {
@@ -179,7 +250,8 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
     });
   };
 
-  const isSyncRunning = syncProgress?.state === 'running';
+  const isSyncRunning   = syncProgress?.state === 'running';
+  const isImportRunning = importProgress?.state === 'running';
 
   return (
     <>
@@ -187,8 +259,8 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex max-w-sm items-start gap-2.5 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm ${
           toast.type === 'success'
-            ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
-            : 'border-rose-400/40 bg-rose-500/15 text-rose-200'
+            ? 'border-emerald-400/60 bg-emerald-50 text-emerald-700'
+            : 'border-rose-400/60 bg-rose-50 text-rose-700'
         }`}>
           {toast.type === 'success'
             ? <CheckCircle size={16} className="mt-0.5 shrink-0" />
@@ -203,15 +275,33 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
         </div>
       )}
 
-      {/* ── Sync progress panel (bottom-left, shown while batches run) ───── */}
-      {isSyncRunning && syncProgress && (
-        <div className="fixed bottom-6 left-6 z-50 flex items-center gap-3 rounded-xl border border-cyan-400/30 bg-slate-900/90 px-4 py-3 shadow-lg backdrop-blur-sm">
-          <Loader2 size={18} className="shrink-0 animate-spin text-cyan-400" />
+      {/* ── Import progress panel (bottom-left, violet) ───────────────────── */}
+      {isImportRunning && importProgress && (
+        <div
+          className="fixed left-6 z-50 flex items-center gap-3 rounded-xl border border-violet-300/60 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm"
+          style={{ bottom: isSyncRunning ? '5.5rem' : '1.5rem' }}
+        >
+          <Loader2 size={18} className="shrink-0 animate-spin text-violet-500" />
           <div className="text-sm leading-tight">
-            <p className="font-semibold text-cyan-200">
+            <p className="font-semibold text-violet-700">
+              Importing… Chunk {importProgress.chunk ?? '—'}
+            </p>
+            <p className="text-xs text-slate-500">
+              {(importProgress.imported ?? 0).toLocaleString()} records processed
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sync progress panel (bottom-left, cyan) ───────────────────────── */}
+      {isSyncRunning && syncProgress && (
+        <div className="fixed bottom-6 left-6 z-50 flex items-center gap-3 rounded-xl border border-teal-300/60 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm">
+          <Loader2 size={18} className="shrink-0 animate-spin text-teal-500" />
+          <div className="text-sm leading-tight">
+            <p className="font-semibold text-teal-700">
               Syncing… Batch {syncProgress.batch ?? '—'}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               {(syncProgress.imported ?? 0).toLocaleString()} imported
               &nbsp;·&nbsp;
               {(syncProgress.skipped ?? 0).toLocaleString()} skipped
@@ -220,28 +310,28 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-900/55 shadow-[0_12px_28px_-20px_rgba(2,12,27,0.95)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 shadow-[0_4px_20px_-8px_rgba(20,184,166,0.12)] backdrop-blur-xl">
         <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 p-2.5 text-white shadow-md shadow-cyan-500/25">
+              <div className="rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 p-2.5 text-white shadow-md shadow-teal-500/25">
                 <LayoutDashboard size={20} />
               </div>
               <div>
-                <h1 className="text-xl font-semibold tracking-tight text-white">Eligibility &amp; Benefits</h1>
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-cyan-200/90">CF-Outsourcing</p>
+                <h1 className="text-xl font-semibold tracking-tight text-slate-800">Eligibility &amp; Benefits</h1>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-teal-600">CF-Outsourcing</p>
               </div>
             </div>
 
-            <nav className="hidden items-center gap-1 rounded-xl border border-white/10 bg-slate-900/50 p-1 lg:flex">
+            <nav className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 lg:flex">
               {['Dashboard', 'Department', 'Directory', 'Resources'].map((item, index) => (
                 <a
                   key={item}
                   href="#"
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                     index === 0
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-200'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      ? 'bg-teal-50 text-teal-700'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                   }`}
                 >
                   {item}
@@ -250,23 +340,34 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
             </nav>
 
             <div className="flex flex-wrap items-center gap-2.5">
-              <button className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white">
+              <button className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
                 <MessageSquare size={15} />
                 Feedback
               </button>
 
               <button
                 onClick={() => setIsImportOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800/80"
+                disabled={isImportRunning}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Upload size={15} />
-                Import CSV
+                {isImportRunning ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Importing…
+                  </>
+                ) : (
+                  <>
+                    <Upload size={15} />
+                    Import CSV
+                  </>
+                )}
               </button>
 
+              {/* Sync API button temporarily disabled */}
               <button
                 onClick={handleSync}
-                disabled={isSyncing || isSyncRunning}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={true}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSyncing || isSyncRunning ? (
                   <>
@@ -283,7 +384,7 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
 
               <a
                 href={buildExportUrl('/appointments/export')}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800/80"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 <Download size={15} />
                 Export All
@@ -299,7 +400,7 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
 
               <a
                 href={buildExportUrl('/appointments/export/pa-dept')}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-500/15 px-3.5 py-2 text-sm font-semibold text-amber-100 shadow-sm transition hover:bg-amber-500/25"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
               >
                 <Download size={15} />
                 Export PA Dept
@@ -308,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/35 bg-rose-500/10 px-3.5 py-2 text-sm font-semibold text-rose-200 shadow-sm transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-3.5 py-2 text-sm font-semibold text-rose-600 shadow-sm transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loggingOut ? (
                   <>
@@ -331,6 +432,7 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         importResult={importResult}
+        onImportStarted={startImportPolling}
       />
     </>
   );

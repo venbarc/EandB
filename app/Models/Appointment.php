@@ -35,6 +35,7 @@ class Appointment extends Model
         'primary_insurance',
         'primary_insurance_id',
         'secondary_insurance',
+        'insurance_type',
         'insurance_status',
         'auth_status',
         'referral_status',
@@ -127,6 +128,11 @@ class Appointment extends Model
     public function scopeForReferral(Builder $query, ?string $referral): Builder
     {
         return $referral ? $query->where('referral_status', $referral) : $query;
+    }
+
+    public function scopeForInsuranceType(Builder $query, ?string $insuranceType): Builder
+    {
+        return $insuranceType ? $query->where('insurance_type', $insuranceType) : $query;
     }
 
     public function scopeForEligibility(Builder $query, ?string $eligibility): Builder

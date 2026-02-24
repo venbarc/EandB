@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Appointment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -19,17 +18,37 @@ class AppointmentSyncService
     /** Records per API page. */
     private const PER_PAGE = 100;
 
-    /** Max rows per tuple-IN dedup query. */
-    private const DEDUP_CHUNK = 500;
-
-    /** Max rows per bulk INSERT. */
-    private const INSERT_CHUNK = 500;
+    /** Max rows per bulk UPSERT. */
+    private const UPSERT_CHUNK = 2000;
 
     /** Cache key for sync progress. */
     public const CACHE_KEY = 'appointment_sync_progress';
 
     /** Cache TTL in seconds (1 hour). */
     private const CACHE_TTL = 3600;
+
+    /**
+     * Source-system fields safe to overwrite on duplicate (upsert update columns).
+     * Deliberately excludes user-set fields: eligibility_status, primary_insurance,
+     * auth_status, referral_status, collection_status, notes, psc_*, etc.
+     */
+    private const UPSERT_UPDATE_COLUMNS = [
+        'appointment_status',
+        'patient_email',
+        'provider',
+        'visit_type',
+        'location',
+        'invoice_no',
+        'invoice_status',
+        'current_responsibility',
+        'claim_created',
+        'charges',
+        'payments',
+        'units',
+        'created_by',
+        'cancellation_reason',
+        'updated_at',
+    ];
 
     public function __construct()
     {
@@ -40,7 +59,7 @@ class AppointmentSyncService
     }
 
     /**
-     * Fetch one batch of pages (pagesPerBatch × PER_PAGE records), dedup, and bulk-insert.
+     * Fetch one batch of pages (pagesPerBatch × PER_PAGE records) and bulk-upsert.
      *
      * @param  int $startPage     The first page number to fetch (1-based)
      * @param  int $pagesPerBatch How many pages to fetch in this batch
@@ -96,7 +115,7 @@ class AppointmentSyncService
 
         $result = empty($candidates)
             ? ['imported' => 0, 'skipped' => 0, 'duplicates' => []]
-            : $this->insertBulkWithDedup($candidates);
+            : $this->upsertBatch($candidates);
 
         // ── Update cumulative progress in cache ──────────────────────────────
         $prev = Cache::get(self::CACHE_KEY, ['imported' => 0, 'skipped' => 0]);
@@ -187,7 +206,7 @@ class AppointmentSyncService
     }
 
     /**
-     * Map one API record to the Appointment fillable shape.
+     * Map one API record to the Appointment shape, including dedup_hash.
      */
     private function mapApiRecord(array $record): ?array
     {
@@ -200,7 +219,6 @@ class AppointmentSyncService
         }
 
         $dos = $this->parseDate($record['date_of_service'] ?? null);
-        // null date is allowed — dedup handles it separately in fetchExistingKeys
 
         return [
             'patient_name'           => $name,
@@ -221,120 +239,42 @@ class AppointmentSyncService
             'units'                  => is_numeric($record['units'] ?? null) ? (int) $record['units'] : 0,
             'created_by'             => $record['created_by'] ?? null,
             'cancellation_reason'    => $record['reason'] ?? null,
+            'dedup_hash'             => $this->makeHash($name, $dos, $record['appointment_status'] ?? null),
         ];
     }
 
     /**
-     * Dedup candidates against the DB, then bulk-insert all new records.
+     * Bulk-upsert all candidates in chunks of UPSERT_CHUNK.
      *
-     * Uses Appointment::insert() in chunks of INSERT_CHUNK — one INSERT per chunk,
-     * not one per row (eliminates the per-row N+1 insert pattern).
+     * Uses dedup_hash as the unique key so MySQL handles conflict detection.
+     * User-set fields (eligibility_status, primary_insurance, auth_status, etc.)
+     * are intentionally excluded from UPSERT_UPDATE_COLUMNS and are never overwritten.
      *
      * @return array{imported: int, skipped: int, duplicates: array}
      */
-    private function insertBulkWithDedup(array $candidates): array
+    private function upsertBatch(array $candidates): array
     {
-        $existingKeys = $this->fetchExistingKeys($candidates);
+        $now = now()->toDateTimeString();
 
-        $toInsert   = [];
-        $skipped    = 0;
-        $duplicates = [];
-        $now        = now()->toDateTimeString();
+        $rows = array_map(fn ($c) => array_merge($c, [
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]), $candidates);
 
-        foreach ($candidates as $candidate) {
-            $key = $this->makeKey(
-                $candidate['patient_name'],
-                $candidate['date_of_service'] ?? ''
-            );
-
-            if (isset($existingKeys[$key])) {
-                $skipped++;
-                $duplicates[] = [
-                    'patient_name'    => $candidate['patient_name'],
-                    'patient_dob'     => $candidate['patient_dob'] ?? null,
-                    'date_of_service' => $candidate['date_of_service'],
-                    'invoice_no'      => $candidate['invoice_no'] ?? null,
-                ];
-            } else {
-                $toInsert[] = array_merge($candidate, [
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-                // Prevent intra-batch duplicates
-                $existingKeys[$key] = true;
-            }
+        foreach (array_chunk($rows, self::UPSERT_CHUNK) as $chunk) {
+            Appointment::upsert($chunk, ['dedup_hash'], self::UPSERT_UPDATE_COLUMNS);
         }
 
-        // One INSERT per chunk — not one per row
-        foreach (array_chunk($toInsert, self::INSERT_CHUNK) as $chunk) {
-            Appointment::insert($chunk);
-        }
+        $imported = count($rows);
 
-        $imported = count($toInsert);
+        Log::info('[AppointmentSync] Batch upsert complete', ['imported' => $imported]);
 
-        Log::info('[AppointmentSync] Batch insert complete', [
-            'imported' => $imported,
-            'skipped'  => $skipped,
-        ]);
-
-        return compact('imported', 'skipped', 'duplicates');
+        return ['imported' => $imported, 'skipped' => 0, 'duplicates' => []];
     }
 
-    /**
-     * Build a "name|dos" => true hashmap for candidates that already exist in DB.
-     *
-     * Dedup criteria: patient_name + date_of_service only (DOB is excluded).
-     * Uses MySQL native tuple-IN syntax for efficient index lookup, chunked to
-     * DEDUP_CHUNK rows per query to stay within safe packet limits.
-     */
-    private function fetchExistingKeys(array $candidates): array
+    private function makeHash(string $name, ?string $dos, ?string $status): string
     {
-        $existing = [];
-
-        $withDate    = array_values(array_filter($candidates, fn ($c) => $c['date_of_service'] !== null));
-        $withoutDate = array_values(array_filter($candidates, fn ($c) => $c['date_of_service'] === null));
-
-        // ── Dated records: tuple-IN on (patient_name, date_of_service) ────────
-        foreach (array_chunk($withDate, self::DEDUP_CHUNK) as $chunk) {
-            $placeholders = rtrim(str_repeat('(?,?),', count($chunk)), ',');
-            $bindings     = array_merge(
-                ...array_map(fn ($c) => [$c['patient_name'], $c['date_of_service']], $chunk)
-            );
-
-            $rows = DB::select(
-                "SELECT patient_name, DATE_FORMAT(date_of_service, '%Y-%m-%d') AS dos
-                 FROM appointments
-                 WHERE (patient_name, date_of_service) IN ($placeholders)",
-                $bindings
-            );
-
-            foreach ($rows as $row) {
-                $existing[$this->makeKey($row->patient_name, $row->dos)] = true;
-            }
-        }
-
-        // ── Null-date records: patient_name IN (...) WHERE date_of_service IS NULL
-        if (! empty($withoutDate)) {
-            $names        = array_values(array_unique(array_column($withoutDate, 'patient_name')));
-            $placeholders = rtrim(str_repeat('?,', count($names)), ',');
-
-            $rows = DB::select(
-                "SELECT patient_name FROM appointments
-                 WHERE date_of_service IS NULL AND patient_name IN ($placeholders)",
-                $names
-            );
-
-            foreach ($rows as $row) {
-                $existing[$this->makeKey($row->patient_name, '')] = true;
-            }
-        }
-
-        return $existing;
-    }
-
-    private function makeKey(string $name, string $dos): string
-    {
-        return strtolower(trim($name)) . '|' . $dos;
+        return md5(strtolower(trim($name)) . '|' . ($dos ?? 'null-date') . '|' . strtolower(trim($status ?? '')));
     }
 
     private function parseDate(mixed $value): ?string

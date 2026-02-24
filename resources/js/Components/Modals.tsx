@@ -27,6 +27,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
     provider_credentialed: '' as string,
     eligibility_status: '' as string,
     collection_status: '' as string,
+    insurance_type: '' as string,
     payments: '' as string,
     auth_status: '' as string,
     referral_status: '' as string,
@@ -46,6 +47,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
         record.providerCredentialed === true ? 'Yes' : record.providerCredentialed === false ? 'No' : '',
       eligibility_status: record.eligibilityStatus !== 'Verification Needed' ? record.eligibilityStatus : '',
       collection_status: record.collectionStatus ?? '',
+      insurance_type: record.insuranceType ?? '',
       payments: record.paidAmount > 0 ? String(record.paidAmount) : '',
       auth_status: record.authStatus !== 'N/A' ? record.authStatus : '',
       referral_status: record.referralStatus !== 'N/A' ? record.referralStatus : '',
@@ -159,6 +161,21 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                 </select>
               </div>
               <div>
+                <label className={labelCls}>Insurance Type</label>
+                <select
+                  value={data.insurance_type}
+                  onChange={(e) => setData('insurance_type', e.target.value)}
+                  className={`${inputCls} modal-select`}
+                >
+                  <option value="">Choose Option</option>
+                  <option>Medicare</option>
+                  <option>Medicare HMO / PPO</option>
+                  <option>Commercial</option>
+                  <option>Medicaid</option>
+                  <option>Worker&apos;s Comp</option>
+                </select>
+              </div>
+              <div>
                 <label className={labelCls}>Patient Balance Amount</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -181,7 +198,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
               <div className="space-y-3">
                 <span className={labelCls}>Auth Required?</span>
                 <div className="flex gap-4">
-                  {['Auth Required', 'N/A'].map((v) => (
+                  {[{ value: 'Auth Required', label: 'Yes' }, { value: 'N/A', label: 'No' }, { value: 'Active', label: 'Active' }].map(({ value: v, label }) => (
                     <label key={v} className="flex items-center cursor-pointer">
                       <input
                         type="radio"
@@ -190,7 +207,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                         onChange={() => setData('auth_status', v)}
                         className="text-brand-600 focus:ring-brand-500"
                       />
-                      <span className="ml-2 text-sm text-gray-600">{v === 'Auth Required' ? 'Yes' : 'No'}</span>
+                      <span className="ml-2 text-sm text-gray-600">{label}</span>
                     </label>
                   ))}
                 </div>

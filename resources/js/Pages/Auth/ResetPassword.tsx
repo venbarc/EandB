@@ -33,21 +33,21 @@ export default function ResetPassword({ token, email, status }: ResetPasswordPro
             footer={
                 <p>
                     Remembered your password?{' '}
-                    <Link href="/login" className="font-semibold text-cyan-300 hover:text-cyan-200">
+                    <Link href="/login" className="font-semibold text-teal-600 hover:text-teal-500">
                         Login
                     </Link>
                 </p>
             }
         >
             {status && (
-                <div className="mb-5 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+                <div className="mb-5 rounded-xl border border-emerald-400/40 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
                     {status}
                 </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
                         Email
                     </label>
                     <input
@@ -56,14 +56,14 @@ export default function ResetPassword({ token, email, status }: ResetPasswordPro
                         autoComplete="email"
                         value={data.email}
                         onChange={(event) => setData('email', event.target.value)}
-                        className="w-full rounded-xl border border-white/20 bg-slate-900/70 px-3.5 py-2.5 text-sm text-slate-50 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-300/30"
                         placeholder="you@example.com"
                     />
-                    {errors.email && <p className="mt-1 text-xs text-red-300">{errors.email}</p>}
+                    {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
                         New password
                     </label>
                     <div className="relative">
@@ -73,23 +73,23 @@ export default function ResetPassword({ token, email, status }: ResetPasswordPro
                             autoComplete="new-password"
                             value={data.password}
                             onChange={(event) => setData('password', event.target.value)}
-                            className="w-full rounded-xl border border-white/20 bg-slate-900/70 px-3.5 py-2.5 pr-10 text-sm text-slate-50 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-300/30"
                             placeholder="New password"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword((value) => !value)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                             tabIndex={-1}
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
-                    {errors.password && <p className="mt-1 text-xs text-red-300">{errors.password}</p>}
+                    {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="password_confirmation" className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label htmlFor="password_confirmation" className="mb-1.5 block text-sm font-medium text-slate-700">
                         Confirm new password
                     </label>
                     <div className="relative">
@@ -99,13 +99,13 @@ export default function ResetPassword({ token, email, status }: ResetPasswordPro
                             autoComplete="new-password"
                             value={data.password_confirmation}
                             onChange={(event) => setData('password_confirmation', event.target.value)}
-                            className="w-full rounded-xl border border-white/20 bg-slate-900/70 px-3.5 py-2.5 pr-10 text-sm text-slate-50 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-300/30"
                             placeholder="Confirm new password"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPasswordConfirm((value) => !value)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                             tabIndex={-1}
                         >
                             {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

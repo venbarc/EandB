@@ -18,14 +18,14 @@ const StatCard: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`group relative w-full overflow-hidden rounded-2xl border bg-slate-900/55 p-4 shadow-[0_20px_40px_-26px_rgba(2,12,27,0.95)] backdrop-blur-sm transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-900/70 active:scale-95 active:brightness-90 text-left cursor-pointer ${
-      isActive ? 'border-white/40 ring-1 ring-white/20' : 'border-white/15'
+    className={`group relative w-full overflow-hidden rounded-2xl border bg-white p-4 shadow-md transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-50 active:scale-95 active:brightness-95 text-left cursor-pointer ${
+      isActive ? 'border-teal-400 ring-1 ring-teal-200/40' : 'border-slate-200'
     }`}
   >
     <div className={`absolute left-0 top-0 h-1 w-full ${tone}`} />
-    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">{label}</p>
-    <p className="mt-1.5 text-3xl font-semibold tracking-tight text-white">{value}</p>
-    <ArrowUpRight className={`absolute bottom-3 right-3 h-4 w-4 transition ${isActive ? 'text-cyan-300' : 'text-slate-500 group-hover:text-cyan-300'}`} />
+    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+    <p className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-800">{value}</p>
+    <ArrowUpRight className={`absolute bottom-3 right-3 h-4 w-4 transition ${isActive ? 'text-teal-500' : 'text-slate-400 group-hover:text-teal-500'}`} />
   </button>
 );
 
@@ -75,7 +75,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats, filters }) =>
         <StatCard
           label="Auth Count"
           value={stats.authCount}
-          tone="bg-gradient-to-r from-cyan-500 to-blue-500"
+          tone="bg-gradient-to-r from-red-500 to-red-700"
           onClick={() => navigate({ auth: 'Auth Required' })}
           isActive={f.auth === 'Auth Required'}
         />
