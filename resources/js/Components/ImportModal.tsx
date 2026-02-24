@@ -80,6 +80,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, impor
                       <span className="font-medium text-white">{dup.patient_name}</span>
                       <span className="mx-1.5 text-slate-500">·</span>
                       {dup.date_of_service}
+                      {dup.patient_dob && (
+                        <>
+                          <span className="mx-1.5 text-slate-500">·</span>
+                          <span className="text-slate-400">DOB: {dup.patient_dob}</span>
+                        </>
+                      )}
                       {dup.invoice_no && (
                         <>
                           <span className="mx-1.5 text-slate-500">·</span>

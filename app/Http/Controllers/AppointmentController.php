@@ -6,9 +6,13 @@ use App\Exports\AppointmentsExport;
 use App\Exports\AvailityExport;
 use App\Exports\PaDeptExport;
 use App\Imports\AppointmentsImport;
+use App\Jobs\SyncAppointmentsJob;
 use App\Models\Appointment;
+use App\Services\AppointmentSyncService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -78,15 +82,42 @@ class AppointmentController extends Controller
         $importer = new AppointmentsImport();
         Excel::import($importer, $request->file('file'));
 
-        $imported = $importer->getImportedCount();
+        $imported   = $importer->getImportedCount();
+        $skipped    = $importer->getSkippedCount();
+        $duplicates = $importer->getDuplicates();
 
         return back()
-            ->with('success', "Imported {$imported} appointment(s) successfully.")
+            ->with('success', "Imported {$imported} appointment(s). {$skipped} duplicate(s) skipped.")
             ->with('importResult', [
-                'imported' => $imported,
-                'skipped'  => 0,
-                'duplicates' => [],
+                'imported'   => $imported,
+                'skipped'    => $skipped,
+                'duplicates' => $duplicates,
             ]);
+    }
+
+    /** Dispatch a background job to pull appointments from the external API in batches. */
+    public function syncFromApi(Request $request): RedirectResponse
+    {
+        // Initialise progress so the frontend can start polling immediately.
+        Cache::put(AppointmentSyncService::CACHE_KEY, [
+            'state'      => 'running',
+            'batch'      => 0,
+            'imported'   => 0,
+            'skipped'    => 0,
+            'page'       => 1,
+            'started_at' => now()->toIso8601String(),
+        ], 3600);
+
+        SyncAppointmentsJob::dispatch(1, 1);
+
+        return back()->with('success', 'Sync started — batches are being processed in the background.');
+    }
+
+    /** Return current sync progress from cache (polled by the frontend). */
+    public function syncProgress(): JsonResponse
+    {
+        $progress = Cache::get(AppointmentSyncService::CACHE_KEY, ['state' => 'idle']);
+        return response()->json($progress);
     }
 
     /** Export all appointments as xlsx. */

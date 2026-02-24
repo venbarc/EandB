@@ -121,7 +121,7 @@ class DashboardController extends Controller
                 'address' => $a->patient_address ?? 'N/A',
             ],
             'provider'             => $a->provider,
-            'date'                 => $a->date_of_service->format('m/d/Y'),
+            'date'                 => $a->date_of_service?->format('m/d/Y') ?? '',
             'time'                 => $a->appointment_time ?? '',
             'status'               => $a->appointment_status,
             'confirmationMethod'   => $a->confirmation_method ?? 'N/A',
