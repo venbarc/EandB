@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function () {
 
     // Must be before /{appointment} pattern routes to avoid conflict
     Route::post('/appointments/import',           [AppointmentController::class, 'import']);
+    Route::post('/appointments/sync-api',         [AppointmentController::class, 'syncFromApi']);
+    Route::get('/appointments/sync-progress',     [AppointmentController::class, 'syncProgress']);
     Route::get('/appointments/export',            [AppointmentController::class, 'exportAll']);
     Route::get('/appointments/export/availity',   [AppointmentController::class, 'exportAvailty']);
     Route::get('/appointments/export/pa-dept',    [AppointmentController::class, 'exportPaDept']);

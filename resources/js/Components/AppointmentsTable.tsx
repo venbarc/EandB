@@ -144,33 +144,33 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                       </button>
                     </td>
 
-                    <td className="px-2 py-4 text-sm text-slate-400 truncate">{row.patient.id}</td>
-                    <td className="px-2 py-4 text-sm font-semibold text-cyan-300 truncate" title={row.patient.name}>{row.patient.name}</td>
-                    <td className="px-2 py-4 text-sm text-slate-400 truncate">{row.patient.dob}</td>
-                    <td className="px-2 py-4 text-sm text-slate-100 truncate" title={row.provider}>{row.provider}</td>
+                    <td className="px-2 py-4 text-sm text-slate-400 truncate">{row.patient.id || 'N/A'}</td>
+                    <td className="px-2 py-4 text-sm font-semibold text-cyan-300 truncate" title={row.patient.name}>{row.patient.name || 'N/A'}</td>
+                    <td className="px-2 py-4 text-sm text-slate-400 truncate">{row.patient.dob || 'N/A'}</td>
+                    <td className="px-2 py-4 text-sm text-slate-100 truncate" title={row.provider}>{row.provider || 'N/A'}</td>
                     <td className="px-2 py-4 text-sm text-slate-300">
                       <div className="flex flex-col">
-                        <span>{row.date}</span>
-                        <span className="text-xs text-slate-500">{row.time}</span>
+                        <span>{row.date || ''}</span>
+                        <span className="text-xs text-slate-500">{row.time || ''}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-4 text-sm text-slate-300">{row.status}</td>
-                    <td className="px-2 py-4 text-sm text-slate-400 truncate" title={row.confirmationMethod}>{row.confirmationMethod}</td>
+                    <td className="px-2 py-4 text-sm text-slate-300">{row.status || 'N/A'}</td>
+                    <td className="px-2 py-4 text-sm text-slate-400 truncate" title={row.confirmationMethod || 'N/A'}>{row.confirmationMethod || 'N/A'}</td>
                     <td className="px-2 py-4">
                       <div className="flex flex-col gap-1.5">
                         {getAuthColor(row.authStatus) ? (
                           <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getAuthColor(row.authStatus)}`}>
-                            Auth: {row.authStatus}
+                            Auth: {row.authStatus || 'N/A'}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-500">Auth: {row.authStatus}</span>
+                          <span className="text-xs text-slate-500">Auth: {row.authStatus || 'N/A'}</span>
                         )}
                         {getRefColor(row.referralStatus) ? (
                           <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getRefColor(row.referralStatus)}`}>
-                            Ref: {row.referralStatus}
+                            Ref: {row.referralStatus || 'N/A'}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-500">Ref: {row.referralStatus}</span>
+                          <span className="text-xs text-slate-500">Ref: {row.referralStatus || 'N/A'}</span>
                         )}
                       </div>
                     </td>
@@ -199,7 +199,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                           className="group flex items-center gap-1.5 rounded px-1 py-0.5 text-left transition hover:bg-slate-700/50"
                           title="Click to edit"
                         >
-                          <span className="truncate">{row.insurance.primary}</span>
+                          <span className="truncate">{row.insurance.primary || 'N/A'}</span>
                           {savingInsuranceId === row.id ? (
                             <Loader2 size={11} className="shrink-0 animate-spin text-cyan-400" />
                           ) : (
@@ -211,7 +211,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                     <td className="px-2 py-4 text-sm text-slate-100 truncate" title={row.insurance.secondary || 'N/A'}>
                       {row.insurance.secondary || 'N/A'}
                     </td>
-                    <td className="px-2 py-4 text-sm text-slate-300 truncate" title={row.visitType}>{row.visitType}</td>
+                    <td className="px-2 py-4 text-sm text-slate-300 truncate" title={row.visitType || 'N/A'}>{row.visitType || 'N/A'}</td>
                     <td className="px-2 py-4 text-sm font-semibold text-slate-100">
                       {row.paidAmount > 0 ? `$${row.paidAmount.toFixed(2)}` : 'N/A'}
                     </td>
@@ -233,16 +233,16 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                       <td colSpan={15} className="bg-slate-950/40 p-0">
                         <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-5">
                           <DetailCard title="Patient Info" tone="bg-gradient-to-r from-cyan-600 to-blue-700">
-                            <DetailRow label="Name" value={row.patient.name} />
-                            <DetailRow label="Phone" value={row.patient.phone} />
-                            <DetailRow label="Email" value={row.patient.email} />
-                            <DetailRow label="Address" value={row.patient.address} />
+                            <DetailRow label="Name" value={row.patient.name || 'N/A'} />
+                            <DetailRow label="Phone" value={row.patient.phone || 'N/A'} />
+                            <DetailRow label="Email" value={row.patient.email || 'N/A'} />
+                            <DetailRow label="Address" value={row.patient.address || 'N/A'} />
                           </DetailCard>
 
                           <DetailCard title="Appointment" tone="bg-gradient-to-r from-orange-500 to-amber-500">
-                            <DetailRow label="Appt ID" value={row.patient.id} />
-                            <DetailRow label="Provider" value={row.provider} />
-                            <DetailRow label="Type" value={row.visitType} />
+                            <DetailRow label="Appt ID" value={row.patient.id || 'N/A'} />
+                            <DetailRow label="Provider" value={row.provider || 'N/A'} />
+                            <DetailRow label="Type" value={row.visitType || 'N/A'} />
                             <DetailRow label="Location" value={row.location || 'N/A'} />
                           </DetailCard>
 
@@ -261,14 +261,14 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                           </DetailCard>
 
                           <DetailCard title="Insurance" tone="bg-gradient-to-r from-emerald-500 to-teal-500">
-                            <DetailRow label="Primary" value={row.insurance.primary} />
-                            <DetailRow label="Member ID" value={row.insurance.primaryId} />
-                            <DetailRow label="Secondary" value={row.insurance.secondary || 'None'} />
-                            <DetailRow label="Status" value={row.insurance.status} />
+                            <DetailRow label="Primary" value={row.insurance.primary || 'N/A'} />
+                            <DetailRow label="Member ID" value={row.insurance.primaryId || 'N/A'} />
+                            <DetailRow label="Secondary" value={row.insurance.secondary || 'N/A'} />
+                            <DetailRow label="Status" value={row.insurance.status || 'N/A'} />
                           </DetailCard>
 
                           <DetailCard title="Eligibility" tone="bg-gradient-to-r from-indigo-600 to-blue-600">
-                            <DetailRow label="E&B Status" value={row.eligibilityStatus} />
+                            <DetailRow label="E&B Status" value={row.eligibilityStatus || 'N/A'} />
                             <DetailRow label="Co-Pay" value={`$${row.credits.toFixed(2)}`} />
                             <DetailRow label="Charges" value={`$${row.charges.toFixed(2)}`} />
                             <DetailRow label="Notes" value={row.notes || 'N/A'} />

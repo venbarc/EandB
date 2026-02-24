@@ -105,6 +105,7 @@ export interface ImportDuplicate {
   patient_name: string;
   date_of_service: string;
   invoice_no: string | null;
+  patient_dob?: string | null;
 }
 
 export interface ImportResult {

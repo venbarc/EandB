@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'appointments_api' => [
+        'login_url' => env('APPOINTMENTS_API_LOGIN_URL'),
+        'url'       => env('APPOINTMENTS_API_URL'),
+        'username'  => env('APPOINTMENTS_API_USERNAME'),
+        'password'  => env('APPOINTMENTS_API_PASSWORD'),
+        'from_date' => env('APPOINTMENTS_API_FROM_DATE'),
+        'to_date'   => env('APPOINTMENTS_API_TO_DATE'),
+    ],
+
 ];
