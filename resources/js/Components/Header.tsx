@@ -2,7 +2,6 @@ import React from 'react';
 import { router, usePage } from '@inertiajs/react';
 import {
   LayoutDashboard,
-  MessageSquare,
   Download,
   Loader2,
   Sparkles,
@@ -323,29 +322,8 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
               </div>
             </div>
 
-            <nav className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 lg:flex">
-              {['Dashboard', 'Department', 'Directory', 'Resources'].map((item, index) => (
-                <a
-                  key={item}
-                  href="#"
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    index === 0
-                      ? 'bg-teal-50 text-teal-700'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                  }`}
-                >
-                  {item}
-                </a>
-              ))}
-            </nav>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
-                <MessageSquare size={15} />
-                Feedback
-              </button>
-
-              <button
+<div className="flex flex-wrap items-center gap-2.5">
+<button
                 onClick={() => setIsImportOpen(true)}
                 disabled={isImportRunning}
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"

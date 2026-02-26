@@ -176,7 +176,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
           <FilterDropdown label="Location" name="location" options={filterOptions.locations} value={form.location ?? ''} />
           <FilterDropdown label="Provider" name="provider" options={filterOptions.providers} value={form.provider ?? ''} />
           <FilterDropdown label="Appt Reason" name="status" options={filterOptions.statuses} value={form.status ?? ''} />
-          <FilterDropdown label="Auth Required" name="auth" options={['Auth Required', 'N/A']} value={form.auth ?? ''} />
+          <FilterDropdown label="Auth Required" name="auth" options={['Auth Active', 'Auth Required', 'No Auth Required', 'For Review']} value={form.auth ?? ''} />
           <FilterDropdown label="Referral Required" name="referral" options={['Required', 'N/A']} value={form.referral ?? ''} />
           <FilterDropdown label="E&B Status" name="eligibility" options={['Eligible', 'Not Eligible', 'Verification Pending']} value={form.eligibility ?? ''} />
           <FilterDropdown label="Insurance Type" name="insuranceType" options={filterOptions.insuranceTypes} value={form.insuranceType ?? ''} />

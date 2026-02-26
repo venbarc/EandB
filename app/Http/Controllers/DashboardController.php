@@ -130,7 +130,9 @@ class DashboardController extends Controller
             'time'                 => $a->appointment_time ?? '',
             'status'               => $a->appointment_status,
             'confirmationMethod'   => $a->confirmation_method ?? 'N/A',
-            'authStatus'           => $a->auth_status ?? 'N/A',
+            'authStatus'           => $a->auth_status ?? 'For Review',
+            'authorizationNumber'  => $a->authorization_number ?? '',
+            'expirationDate'       => $a->expiration_date?->format('m/d/Y') ?? '',
             'referralStatus'       => $a->referral_status ?? 'N/A',
             'insurance' => [
                 'primary'   => $a->primary_insurance ?? 'N/A',

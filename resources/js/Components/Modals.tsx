@@ -198,7 +198,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
               <div className="space-y-3">
                 <span className={labelCls}>Auth Required?</span>
                 <div className="flex gap-4">
-                  {[{ value: 'Auth Required', label: 'Yes' }, { value: 'N/A', label: 'No' }, { value: 'Active', label: 'Active' }].map(({ value: v, label }) => (
+                  {[{ value: 'Auth Active', label: 'Auth Active' }, { value: 'No Auth Required', label: 'No Auth Required' }, { value: 'Auth Required', label: 'Auth Required' }].map(({ value: v, label }) => (
                     <label key={v} className="flex items-center cursor-pointer">
                       <input
                         type="radio"

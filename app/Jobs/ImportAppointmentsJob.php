@@ -26,32 +26,47 @@ class ImportAppointmentsJob implements ShouldQueue
     /** Cache key polled by the frontend. */
     public const CACHE_KEY = 'appointment_import_progress';
 
-    public function __construct(private readonly string $filePath) {}
+    /**
+     * @param string $filePath  Path to the stored import file.
+     * @param string $mode      Import mode: 'all', 'new_only', or 'updates_only'.
+     */
+    public function __construct(
+        private readonly string $filePath,
+        private readonly string $mode = 'all',
+    ) {}
 
     public function handle(): void
     {
-        Log::info('[ImportAppointmentsJob] Starting file import', ['file' => $this->filePath]);
+        Log::info('[ImportAppointmentsJob] Starting file import', [
+            'file' => $this->filePath,
+            'mode' => $this->mode,
+        ]);
 
-        try {
-            $importer = (new AppointmentsImport())->withCacheKey(self::CACHE_KEY);
+        $importer = (new AppointmentsImport())->withCacheKey(self::CACHE_KEY);
 
-            Excel::import($importer, Storage::path($this->filePath));
-
-            Cache::put(self::CACHE_KEY, [
-                'state'    => 'complete',
-                'chunk'    => $importer->getChunkCount(),
-                'imported' => $importer->getImportedCount(),
-                'skipped'  => 0,
-            ], 3600);
-
-            Log::info('[ImportAppointmentsJob] Import complete', [
-                'imported' => $importer->getImportedCount(),
-                'chunks'   => $importer->getChunkCount(),
-            ]);
-        } finally {
-            // Always clean up the stored file, even on failure
-            Storage::delete($this->filePath);
+        // Apply mode filtering
+        if ($this->mode === 'new_only') {
+            $importer->newOnly();
+        } elseif ($this->mode === 'updates_only') {
+            $importer->updatesOnly();
         }
+
+        Excel::import($importer, $this->filePath, 'local');
+
+        Cache::put(self::CACHE_KEY, [
+            'state'    => 'complete',
+            'chunk'    => $importer->getChunkCount(),
+            'imported' => $importer->getImportedCount(),
+            'skipped'  => 0,
+        ], 3600);
+
+        Log::info('[ImportAppointmentsJob] Import complete', [
+            'imported' => $importer->getImportedCount(),
+            'chunks'   => $importer->getChunkCount(),
+        ]);
+
+        // Clean up on success; failed() handles cleanup after all retries are exhausted
+        Storage::delete($this->filePath);
     }
 
     /**

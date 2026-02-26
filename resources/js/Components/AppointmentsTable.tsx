@@ -97,13 +97,10 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
 
   const getAuthColor = (status: string): string | null => {
     if (status === 'Auth Required') return 'border-red-500 bg-red-600 text-white shadow-md shadow-red-200';
-    if (status === 'Active') return 'border-emerald-500 bg-emerald-600 text-white shadow-md shadow-emerald-200';
+    if (status === 'Auth Active') return 'border-emerald-500 bg-emerald-600 text-white shadow-md shadow-emerald-200';
+    if (status === 'No Auth Required') return 'border-slate-400 bg-slate-500 text-white shadow-md shadow-slate-200';
+    if (status === 'For Review') return 'border-amber-400 bg-amber-500 text-white shadow-md shadow-amber-200';
     return null;
-  };
-
-  const getAuthLabel = (status: string): string => {
-    if (status === 'Auth Required') return 'Required';
-    return status;
   };
 
   const getRefColor = (status: string): string | null =>
@@ -182,8 +179,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                     <td className="px-2 py-4">
                       <div className="flex flex-row items-center gap-1.5 flex-nowrap">
                         {getAuthColor(row.authStatus) ? (
-                          <span className={`inline-block rounded-lg border px-3 py-1 text-xs font-bold tracking-wide ${getAuthColor(row.authStatus)}`}>
-                            {getAuthLabel(row.authStatus)}
+                          <span className={`inline-block rounded-lg border px-3 py-1.5 text-sm font-bold tracking-wide ${getAuthColor(row.authStatus)}`}>
+                            {row.authStatus}
                           </span>
                         ) : (
                           <span className="text-xs text-slate-400">{row.authStatus || 'N/A'}</span>
@@ -298,6 +295,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
 
                           <DetailCard title="Auth / Referral" tone="bg-gradient-to-r from-violet-600 to-purple-700">
                             <DetailRow label="Auth" value={row.authStatus} />
+                            <DetailRow label="Authorization #" value={row.authorizationNumber || 'N/A'} />
+                            <DetailRow label="Expiration Date" value={row.expirationDate || 'N/A'} />
                             <DetailRow label="Referral" value={row.referralStatus} />
                             <DetailRow label="Credentialed" value={row.providerCredentialed === true ? 'Yes' : row.providerCredentialed === false ? 'No' : 'Unknown'} />
                             <DetailRow label="Collection" value={row.collectionStatus || 'N/A'} />
@@ -319,6 +318,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
 
                           <DetailCard title="Eligibility" tone="bg-gradient-to-r from-indigo-600 to-blue-600">
                             <DetailRow label="E&B Status" value={row.eligibilityStatus || 'N/A'} />
+                            <DetailRow label="Authorization #" value={row.authorizationNumber || 'N/A'} />
+                            <DetailRow label="Expiration Date" value={row.expirationDate || 'N/A'} />
                             <DetailRow label="Co-Pay" value={`$${row.credits.toFixed(2)}`} />
                             <DetailRow label="Charges" value={`$${row.charges.toFixed(2)}`} />
                             <DetailRow label="Notes" value={row.notes || 'N/A'} />
