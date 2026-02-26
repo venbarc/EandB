@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function () {
 
     // Must be before /{appointment} pattern routes to avoid conflict
     Route::post('/appointments/import',           [AppointmentController::class, 'import']);
+    Route::post('/appointments/import-preview',   [AppointmentController::class, 'importPreview']);
+    Route::post('/appointments/import-confirm',   [AppointmentController::class, 'importConfirm']);
     Route::get('/appointments/import-progress',   [AppointmentController::class, 'importProgress']);
     // Sync API routes temporarily disabled
     // Route::post('/appointments/sync-api',         [AppointmentController::class, 'syncFromApi']);

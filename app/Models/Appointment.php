@@ -10,6 +10,7 @@ class Appointment extends Model
 {
     protected $fillable = [
         'patient_name',
+        'patient_external_id',
         'patient_dob',
         'patient_phone',
         'patient_email',
@@ -32,6 +33,11 @@ class Appointment extends Model
         'cancellation_reason',
         'modification_history',
         'payment_method',
+        'authorization_number',
+        'scheduled_visits',
+        'total_visits',
+        'expiration_date',
+        'authorization_text',
         'primary_insurance',
         'primary_insurance_id',
         'secondary_insurance',
@@ -54,16 +60,17 @@ class Appointment extends Model
     ];
 
     protected $casts = [
-        'date_of_service'     => 'date',
-        'patient_dob'         => 'date',
-        'claim_created'       => 'boolean',
+        'date_of_service'       => 'date',
+        'patient_dob'           => 'date',
+        'expiration_date'       => 'date',
+        'claim_created'         => 'boolean',
         'provider_credentialed' => 'boolean',
-        'charges'             => 'float',
-        'payments'            => 'float',
-        'credits'             => 'float',
-        'deductible'          => 'float',
-        'oop'                 => 'float',
-        'collected_amount'    => 'float',
+        'charges'               => 'float',
+        'payments'              => 'float',
+        'credits'               => 'float',
+        'deductible'            => 'float',
+        'oop'                   => 'float',
+        'collected_amount'      => 'float',
     ];
 
     /** Formatted patient ID shown in the table (PT-000001). */

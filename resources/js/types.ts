@@ -24,6 +24,8 @@ export interface Appointment {
   status: string;
   confirmationMethod: string;
   authStatus: string;
+  authorizationNumber: string;
+  expirationDate: string;
   referralStatus: string;
   insurance: Insurance;
   visitType: string;
@@ -115,4 +117,27 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   duplicates: ImportDuplicate[];
+}
+
+export interface ImportPreviewRecord {
+  patient_id: string;
+  patient_name: string;
+  date_of_service: string;
+  appointment_status: string;
+  provider: string;
+  visit_type: string;
+  location: string;
+  auth_tag: string;
+  authorization_number: string;
+  expiration_date: string;
+  existing_modification?: string;
+  new_modification?: string;
+}
+
+export interface ImportPreviewResult {
+  file_path: string | null;
+  new_records: ImportPreviewRecord[];
+  update_records: ImportPreviewRecord[];
+  skip_count: number;
+  total_rows: number;
 }
