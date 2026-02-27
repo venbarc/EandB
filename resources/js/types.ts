@@ -45,6 +45,9 @@ export interface Appointment {
   collectedAmount: number | null;
   collectedMethod: string;
   collectedReceiptNo: string;
+  scheduledVisits: number | null;
+  totalVisits: number | null;
+  remainingVisits: number | null;
   notes: string;
   isSubmittedToPaDept: boolean;
   paSubmittedAt?: string | null;

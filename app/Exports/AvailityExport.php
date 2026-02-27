@@ -21,7 +21,7 @@ class AvailityExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     public function query()
     {
         return Appointment::query()
-            ->forDate($this->filters['date'] ?? null)
+            ->forDateRange($this->filters['dateFrom'] ?? null, $this->filters['dateTo'] ?? null)
             ->forPatient($this->filters['patient'] ?? null)
             ->forInsurances($this->filters['insurances'] ?? null)
             ->forProvider($this->filters['provider'] ?? null)

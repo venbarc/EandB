@@ -293,21 +293,21 @@ class AppointmentController extends Controller
     /** Export all appointments as xlsx. */
     public function exportAll(Request $request): BinaryFileResponse
     {
-        $filters = $request->only(['date', 'patient', 'insurances', 'provider', 'status']);
+        $filters = $request->only(['dateFrom', 'dateTo', 'patient', 'insurances', 'provider', 'status']);
         return Excel::download(new AppointmentsExport($filters), 'appointments.xlsx');
     }
 
     /** Export in Availity-compatible format. */
     public function exportAvailty(Request $request): BinaryFileResponse
     {
-        $filters = $request->only(['date', 'patient', 'insurances', 'provider', 'status']);
+        $filters = $request->only(['dateFrom', 'dateTo', 'patient', 'insurances', 'provider', 'status']);
         return Excel::download(new AvailityExport($filters), 'availity-export.xlsx');
     }
 
     /** Export records currently submitted to PA Department. */
     public function exportPaDept(Request $request): BinaryFileResponse
     {
-        $filters = $request->only(['date', 'patient', 'insurances', 'provider', 'status']);
+        $filters = $request->only(['dateFrom', 'dateTo', 'patient', 'insurances', 'provider', 'status']);
         return Excel::download(new PaDeptExport($filters), 'pa-dept-submissions.xlsx');
     }
 

@@ -142,9 +142,9 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                   className={`${inputCls} modal-select`}
                 >
                   <option value="">Choose Option</option>
-                  <option>Eligible</option>
-                  <option>Not Eligible</option>
-                  <option>Verification Pending</option>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                  <option>Self Pay</option>
                 </select>
               </div>
               <div>
@@ -155,9 +155,10 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                   className={`${inputCls} modal-select`}
                 >
                   <option value="">Choose Option</option>
-                  <option>Collected</option>
-                  <option>Pending</option>
-                  <option>Not Required</option>
+                  <option>Co Pay</option>
+                  <option>No Co Pay</option>
+                  <option>Co Insurance</option>
+                  <option>Deductible</option>
                 </select>
               </div>
               <div>
