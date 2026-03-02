@@ -16,16 +16,22 @@ class PaDeptExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
 
     public function query()
     {
-        return Appointment::query()
-            ->whereHas('paDepartmentSubmission')
+        $query = Appointment::query()
+            ->whereHas('paDepartmentSubmission', function ($q) {
+                if (!empty($this->filters['submittedToday'])) {
+                    $q->whereDate('submitted_at', now()->toDateString());
+                }
+            })
             ->with('paDepartmentSubmission')
-            ->forDateRange($this->filters['dateFrom'] ?? null, $this->filters['dateTo'] ?? null)
+            ->forDateRange($this->filters['dateFrom'] ?? null, $this->filters['dateTo'] ?? null);
             ->forPatient($this->filters['patient'] ?? null)
             ->forInsurances($this->filters['insurances'] ?? null)
             ->forProvider($this->filters['provider'] ?? null)
             ->forStatus($this->filters['status'] ?? null)
             ->orderBy('date_of_service')
             ->orderBy('patient_name');
+
+        return $query;
     }
 
     public function headings(): array

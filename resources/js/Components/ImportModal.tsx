@@ -20,7 +20,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImp
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFile(e.target.files?.[0] ?? null);
+    const selected = e.target.files?.[0] ?? null;
+    if (selected && !selected.name.toLowerCase().endsWith('.csv')) {
+      setError('Only CSV files are accepted.');
+      setFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    setFile(selected);
     setError(null);
   };
 
@@ -167,7 +174,7 @@ const UploadStep: React.FC<UploadStepProps> = ({ fileRef, file, loading, error, 
         <div className="rounded-lg bg-violet-100 p-2 text-violet-500">
           <Upload size={17} />
         </div>
-        <h2 className="text-base font-semibold text-slate-800">Import CSV / Excel</h2>
+        <h2 className="text-base font-semibold text-slate-800">Import CSV</h2>
       </div>
       <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
         <X size={17} />
@@ -189,13 +196,13 @@ const UploadStep: React.FC<UploadStepProps> = ({ fileRef, file, loading, error, 
           <>
             <Upload size={28} className="text-slate-400" />
             <span className="text-sm text-slate-600">Click to browse or drop a file here</span>
-            <span className="text-xs text-slate-500">.xlsx · .xls · .csv — max 50 MB</span>
+            <span className="text-xs text-slate-500">.csv only — max 50 MB</span>
           </>
         )}
         <input
           ref={fileRef}
           type="file"
-          accept=".xlsx,.xls,.csv"
+          accept=".csv"
           className="hidden"
           onChange={onFileChange}
         />

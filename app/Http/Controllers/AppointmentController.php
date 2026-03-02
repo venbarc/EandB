@@ -82,16 +82,23 @@ class AppointmentController extends Controller
     public function importPreview(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:51200'],
+            'file' => ['required', 'file', 'max:51200'],
         ]);
+
+        // Strictly enforce CSV extension
+        $extension = strtolower($request->file('file')->getClientOriginalExtension());
+        if ($extension !== 'csv') {
+            return response()->json(['error' => 'Only CSV files are accepted.'], 422);
+        }
 
         $path = $request->file('file')->store('imports');
 
         $importer = new AppointmentsImport();
 
-        // Use native fgetcsv instead of Excel::toCollection to avoid
-        // Maatwebsite's garbage-collect deleting the stored file on Windows.
+        // Normalize encoding (UTF-16 → UTF-8) and delimiter (tab → comma) if needed
         $absPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, Storage::path($path));
+        $this->normalizeCsvFile($absPath);
+
         $handle = fopen($absPath, 'r');
 
         if ($handle === false) {
@@ -119,7 +126,7 @@ class AppointmentController extends Controller
                 $record['_dedup_hash'] = $hash;
 
                 // Auto-tag auth_status for preview display
-                if (!empty($record['expiration_date'])) {
+                if (!empty($record['authorization_number'])) {
                     $record['_auth_tag'] = 'Auth Active';
                 } else {
                     $record['_auth_tag'] = 'For Review';
@@ -176,7 +183,7 @@ class AppointmentController extends Controller
                 'location'         => $record['location'] ?? '',
                 'auth_tag'         => $authTag,
                 'authorization_number' => $record['authorization_number'] ?? '',
-                'expiration_date'  => $record['expiration_date'] ?? '',
+                'expiration_date'  => '',
             ];
 
             if (!$existing->has($hash)) {
@@ -240,10 +247,19 @@ class AppointmentController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:51200'],
+            'file' => ['required', 'file', 'max:51200'],
         ]);
 
+        $extension = strtolower($request->file('file')->getClientOriginalExtension());
+        if ($extension !== 'csv') {
+            return back()->withErrors(['file' => 'Only CSV files are accepted.']);
+        }
+
         $path = $request->file('file')->store('imports');
+
+        // Normalize encoding before dispatching job
+        $absPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, Storage::path($path));
+        $this->normalizeCsvFile($absPath);
 
         Cache::put(ImportAppointmentsJob::CACHE_KEY, [
             'state'      => 'running',
@@ -367,5 +383,63 @@ class AppointmentController extends Controller
         }
 
         return $value;
+    }
+
+    /**
+     * Normalize a CSV file: convert UTF-16 (LE/BE) to UTF-8, and
+     * convert tab-separated values to comma-separated.
+     * Overwrites the file in place so downstream code can use standard fgetcsv().
+     */
+    private function normalizeCsvFile(string $absPath): void
+    {
+        $raw = file_get_contents($absPath);
+        if ($raw === false) {
+            return;
+        }
+
+        $encoding = null;
+
+        // Detect BOM and encoding
+        if (str_starts_with($raw, "\xFF\xFE")) {
+            // UTF-16 LE BOM
+            $encoding = 'UTF-16LE';
+            $raw = substr($raw, 2); // strip BOM
+        } elseif (str_starts_with($raw, "\xFE\xFF")) {
+            // UTF-16 BE BOM
+            $encoding = 'UTF-16BE';
+            $raw = substr($raw, 2); // strip BOM
+        } elseif (str_starts_with($raw, "\xEF\xBB\xBF")) {
+            // UTF-8 BOM — strip it but no conversion needed
+            $raw = substr($raw, 3);
+        }
+
+        // Convert to UTF-8 if needed
+        if ($encoding !== null) {
+            $raw = mb_convert_encoding($raw, 'UTF-8', $encoding);
+        }
+
+        // Detect if tab-separated (check first line for tabs vs commas)
+        $firstLine = strtok($raw, "\n");
+        $tabCount   = substr_count($firstLine, "\t");
+        $commaCount = substr_count($firstLine, ",");
+
+        // Write UTF-8 content (with BOM stripped) to file first
+        file_put_contents($absPath, $raw);
+
+        // If tab-separated, re-parse with fgetcsv(tab) and rewrite as fputcsv(comma).
+        // This properly handles quoted multiline fields (e.g. Modification History).
+        if ($tabCount > $commaCount) {
+            $input   = fopen($absPath, 'r');
+            $tmpPath = $absPath . '.tmp';
+            $output  = fopen($tmpPath, 'w');
+
+            while (($fields = fgetcsv($input, 0, "\t")) !== false) {
+                fputcsv($output, $fields);
+            }
+
+            fclose($input);
+            fclose($output);
+            rename($tmpPath, $absPath);
+        }
     }
 }

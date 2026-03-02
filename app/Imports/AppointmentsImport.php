@@ -13,37 +13,37 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
 {
     /**
-     * Visits & Authorization CSV layout (headers in row 1, data from row 2):
+     * Visit AR Report CSV layout (headers in row 1, data from row 2):
      *
      * Column mapping (0-based index):
-     *  0  Patient ID
-     *  1  Patient Name
-     *  2  DOB
-     *  3  Day of Date of Service (text: "February 26, 2026")
-     *  4  Appointment Status
-     *  5  Provider
-     *  6  Service (visit type)
-     *  7  Location
-     *  8  Authorization Number
-     *  9  Scheduled Visits
-     * 10  Total Visits
-     * 11  Day of Expiration Date (text: "May 17, 2026")
-     * 12  Invoice No.
-     * 13  Invoice Status
-     * 14  Current Responsibility
-     * 15  Claim Created (Yes/No)
-     * 16  Charges
-     * 17  Payments
-     * 18  Units
-     * 19  Created by
-     * 20  Cancellation Reason
-     * 21  Modification History
-     * 22  Payment Method
-     * 23  Blank
-     * 24  Date of Service (actual date)
-     * 25  Patient Name (copy)
-     * 26  Authorization (full text)
-     * 27  Expiration Date (date)
+     *  0  Index (row number — skipped)
+     *  1  Patient ID
+     *  2  Patient Name
+     *  3  DOB
+     *  4  Provider
+     *  5  Service (visit type)
+     *  6  Month, Day, Year of Date of Service (text: "January 7, 2026")
+     *  7  Appointment Status
+     *  8  Modification History
+     *  9  Location
+     * 10  Invoice No.
+     * 11  Invoice Status
+     * 12  Authorization Number
+     * 13  Scheduled Visits
+     * 14  Total Visits
+     * 15  Charges
+     * 16  Payments
+     * 17  Units
+     * 18  Installment ID1
+     * 19  Invoice No. (ARAging)
+     * 20  Claim Created (ARAging)
+     * 21  Current Responsibility (ARAging)
+     * 22  Primary/Secondary/Patient
+     * 23  Insurance/Patient Name
+     * 24  AR Charges
+     * 25  AR Payments
+     * 26  AR Adjustments/Promotions
+     * 27  Balance
      */
 
     /**
@@ -65,16 +65,19 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
         'visit_type',
         'location',
         'provider',
-        'cancellation_reason',
         'modification_history',
-        'created_by',
-        'payment_method',
         'authorization_number',
         'scheduled_visits',
         'total_visits',
-        'expiration_date',
-        'authorization_text',
         'auth_status',
+        'installment_id',
+        'invoice_no_ar_aging',
+        'primary_secondary_patient',
+        'insurance_patient_name',
+        'ar_charges',
+        'ar_payments',
+        'ar_adjustments',
+        'balance',
         'updated_at',
     ];
 
@@ -137,8 +140,8 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
             $c['created_at']  = $now;
             $c['updated_at']  = $now;
 
-            // Auto-tag auth_status based on authorization/expiration data
-            if (!empty($c['expiration_date'])) {
+            // Auto-tag auth_status based on authorization data
+            if (!empty($c['authorization_number'])) {
                 $c['auth_status'] = 'Auth Active';
             } else {
                 $c['auth_status'] = 'For Review';
@@ -217,47 +220,48 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
 
     private function parseRow(array $row): ?array
     {
-        $name = trim((string) ($row[1] ?? ''));
+        $name = trim((string) ($row[2] ?? ''));
         if ($name === '' || strtolower($name) === 'total') {
             return null;
         }
 
-        // Use column 24 (Date of Service actual date) first, fall back to column 3 (text date)
-        $date = $this->parseDate($row[24] ?? null) ?? $this->parseDate($row[3] ?? null);
+        // Column 6: "Month, Day, Year of Date of Service" (text: "January 7, 2026")
+        $date = $this->parseDate($row[6] ?? null);
         if (! $date) {
             return null;
         }
 
-        $invoiceNo     = trim((string) ($row[12] ?? '')) ?: null;
-        $expirationDate = $this->parseDate($row[27] ?? null) ?? $this->parseDate($row[11] ?? null);
-        $dob           = $this->parseDate($row[2] ?? null);
+        $dob = $this->parseDate($row[3] ?? null);
 
         return [
-            'patient_external_id'    => trim((string) ($row[0] ?? '')) ?: null,
-            'patient_name'           => $name,
-            'patient_dob'            => $dob,
-            'date_of_service'        => $date,
-            'eligibility_status'     => 'Verification Pending',
-            'appointment_status'     => trim((string) ($row[4] ?? 'New')),
-            'provider'               => trim((string) ($row[5] ?? '')),
-            'visit_type'             => trim((string) ($row[6] ?? '')),
-            'location'               => trim((string) ($row[7] ?? '')) ?: null,
-            'authorization_number'   => trim((string) ($row[8] ?? '')) ?: null,
-            'scheduled_visits'       => is_numeric($row[9] ?? null) ? (int) $row[9] : null,
-            'total_visits'           => is_numeric($row[10] ?? null) ? (int) $row[10] : null,
-            'expiration_date'        => $expirationDate,
-            'invoice_no'             => $invoiceNo,
-            'invoice_status'         => trim((string) ($row[13] ?? '')) ?: null,
-            'current_responsibility' => trim((string) ($row[14] ?? '')) ?: null,
-            'claim_created'          => strtolower(trim((string) ($row[15] ?? ''))) === 'yes',
-            'charges'                => is_numeric($row[16] ?? null) ? (float) $row[16] : 0,
-            'payments'               => is_numeric($row[17] ?? null) ? (float) $row[17] : 0,
-            'units'                  => is_numeric($row[18] ?? null) ? (int) $row[18] : 0,
-            'created_by'             => trim((string) ($row[19] ?? '')) ?: null,
-            'cancellation_reason'    => trim((string) ($row[20] ?? '')) ?: null,
-            'modification_history'   => $this->parseModificationDate($row[21] ?? null),
-            'payment_method'         => trim((string) ($row[22] ?? '')) ?: null,
-            'authorization_text'     => trim((string) ($row[26] ?? '')) ?: null,
+            'patient_external_id'      => trim((string) ($row[1] ?? '')) ?: null,
+            'patient_name'             => $name,
+            'patient_dob'              => $dob,
+            'date_of_service'          => $date,
+            'eligibility_status'       => 'Verification Pending',
+            'appointment_status'       => trim((string) ($row[7] ?? 'New')),
+            'provider'                 => trim((string) ($row[4] ?? '')),
+            'visit_type'               => trim((string) ($row[5] ?? '')),
+            'location'                 => trim((string) ($row[9] ?? '')) ?: null,
+            'authorization_number'     => trim((string) ($row[12] ?? '')) ?: null,
+            'scheduled_visits'         => is_numeric($row[13] ?? null) ? (int) $row[13] : null,
+            'total_visits'             => is_numeric($row[14] ?? null) ? (int) $row[14] : null,
+            'invoice_no'               => trim((string) ($row[10] ?? '')) ?: null,
+            'invoice_status'           => trim((string) ($row[11] ?? '')) ?: null,
+            'current_responsibility'   => trim((string) ($row[21] ?? '')) ?: null,
+            'claim_created'            => strtolower(trim((string) ($row[20] ?? ''))) === 'yes',
+            'charges'                  => is_numeric($row[15] ?? null) ? (float) $row[15] : 0,
+            'payments'                 => is_numeric($row[16] ?? null) ? (float) $row[16] : 0,
+            'units'                    => is_numeric($row[17] ?? null) ? (int) $row[17] : 0,
+            'modification_history'     => $this->parseModificationDate($row[8] ?? null),
+            'installment_id'           => trim((string) ($row[18] ?? '')) ?: null,
+            'invoice_no_ar_aging'      => trim((string) ($row[19] ?? '')) ?: null,
+            'primary_secondary_patient'=> trim((string) ($row[22] ?? '')) ?: null,
+            'insurance_patient_name'   => trim((string) ($row[23] ?? '')) ?: null,
+            'ar_charges'               => is_numeric($row[24] ?? null) ? (float) $row[24] : 0,
+            'ar_payments'              => is_numeric($row[25] ?? null) ? (float) $row[25] : 0,
+            'ar_adjustments'           => is_numeric($row[26] ?? null) ? (float) $row[26] : 0,
+            'balance'                  => is_numeric($row[27] ?? null) ? (float) $row[27] : 0,
         ];
     }
 

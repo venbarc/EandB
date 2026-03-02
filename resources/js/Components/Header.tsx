@@ -10,6 +10,7 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
+  Settings,
 } from 'lucide-react';
 import { FilterState, ImportResult } from '@/types';
 import { ImportModal } from '@/Components/ImportModal';
@@ -382,6 +383,14 @@ export const Header: React.FC<HeaderProps> = ({ filters = {} }) => {
               >
                 <Download size={15} />
                 Export PA Dept
+              </a>
+
+              <a
+                href="/pa-export-settings"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <Settings size={15} />
+                PA Export Settings
               </a>
 
               <button

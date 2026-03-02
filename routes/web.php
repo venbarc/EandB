@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\PaExportSettingsController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -44,4 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/appointments/{appointment}',       [AppointmentController::class, 'update']);
     Route::patch('/appointments/{appointment}/psc',   [AppointmentController::class, 'updatePsc']);
     Route::patch('/appointments/{appointment}/pa-dept-submission', [AppointmentController::class, 'togglePaDeptSubmission']);
+
+    // PA Export Settings
+    Route::get('/pa-export-settings',       [PaExportSettingsController::class, 'index']);
+    Route::put('/pa-export-settings',       [PaExportSettingsController::class, 'update']);
+    Route::post('/pa-export-settings/send', [PaExportSettingsController::class, 'sendNow']);
 });

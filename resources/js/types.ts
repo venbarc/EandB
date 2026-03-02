@@ -137,6 +137,29 @@ export interface ImportPreviewRecord {
   new_modification?: string;
 }
 
+export interface PaExportSettings {
+  enabled: boolean;
+  schedule_time: string;
+  export_scope: 'all' | 'today';
+  recipients: string[];
+}
+
+export interface PaExportLogEntry {
+  id: number;
+  status: 'success' | 'failed';
+  recipients: string[];
+  record_count: number;
+  file_name: string | null;
+  error_message: string | null;
+  executed_at: string;
+}
+
+export interface PaginatedPaExportLogs {
+  data: PaExportLogEntry[];
+  meta: PaginationMeta;
+  links: PaginationLinks;
+}
+
 export interface ImportPreviewResult {
   file_path: string | null;
   new_records: ImportPreviewRecord[];

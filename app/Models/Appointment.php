@@ -57,6 +57,14 @@ class Appointment extends Model
         'psc_code',
         'psc_description',
         'notes',
+        'installment_id',
+        'invoice_no_ar_aging',
+        'primary_secondary_patient',
+        'insurance_patient_name',
+        'ar_charges',
+        'ar_payments',
+        'ar_adjustments',
+        'balance',
     ];
 
     protected $casts = [
@@ -71,6 +79,10 @@ class Appointment extends Model
         'deductible'            => 'float',
         'oop'                   => 'float',
         'collected_amount'      => 'float',
+        'ar_charges'            => 'float',
+        'ar_payments'           => 'float',
+        'ar_adjustments'        => 'float',
+        'balance'               => 'float',
     ];
 
     /** Formatted patient ID shown in the table (PT-000001). */
