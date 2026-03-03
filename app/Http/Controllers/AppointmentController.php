@@ -352,6 +352,9 @@ class AppointmentController extends Controller
             'provider_credentialed' => ['nullable', 'boolean'],
             'eligibility_status'    => ['nullable', 'string', 'max:100'],
             'collection_status'     => ['nullable', 'string', 'max:100'],
+            'collection_items'          => ['nullable', 'array'],
+            'collection_items.*.status' => ['nullable', 'string', 'max:100'],
+            'collection_items.*.amount' => ['nullable', 'numeric', 'min:0'],
             'payments'              => ['nullable', 'numeric', 'min:0'],
             'auth_status'           => ['nullable', 'string', 'max:100'],
             'referral_status'       => ['nullable', 'string', 'max:100'],
@@ -359,6 +362,8 @@ class AppointmentController extends Controller
             'collected_amount'      => ['nullable', 'numeric', 'min:0'],
             'collected_method'      => ['nullable', 'string', 'max:100'],
             'collected_receipt_no'  => ['nullable', 'string', 'max:100'],
+            'psc_code'              => ['nullable', 'string', 'max:100'],
+            'psc_description'       => ['nullable', 'string'],
         ];
     }
 

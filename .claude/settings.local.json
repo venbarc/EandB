@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"c:/Users/AaronCarlCladoLibago/Desktop/Eligibility&Benefits/resources/js/Pages/Auth\" -type f -name \"*.tsx\")",
+      "Bash(xargs wc -l)",
+      "Bash(wc -l \"c:/Users/AaronCarlCladoLibago/Desktop/Eligibility&Benefits/resources/js/Components\"/*)",
+      "Bash(php artisan tinker --execute=\":*)",
+      "Bash(php artisan tinker --execute=\"use Illuminate\\\\Support\\\\Facades\\\\DB; $r = DB::selectOne\\(''SELECT COUNT\\(*\\) as cnt FROM appointments WHERE expiration_date IS NOT NULL''\\); echo ''Filled: ''.$r->cnt;\")",
+      "Bash(php artisan migrate)",
+      "Bash(php artisan tinker --execute=\"echo DB::selectOne\\(''SELECT COUNT\\(*\\) as cnt FROM appointments WHERE expiration_date IS NOT NULL''\\)->cnt.'' filled, ''.DB::selectOne\\(''SELECT COUNT\\(*\\) as cnt FROM appointments WHERE expiration_date IS NULL''\\)->cnt.'' still null'';\")",
+      "Bash(find \"c:\\\\Users\\\\AaronCarlCladoLibago\\\\Desktop\\\\Eligibility&Benefits\" -path \"*database/migrations*\" -type f -name \"*.php\")"
+    ]
+  }
+}

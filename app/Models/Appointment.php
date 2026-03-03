@@ -48,6 +48,7 @@ class Appointment extends Model
         'eligibility_status',
         'provider_credentialed',
         'collection_status',
+        'collection_items',
         'credits',
         'deductible',
         'oop',
@@ -71,6 +72,7 @@ class Appointment extends Model
         'date_of_service'       => 'date',
         'patient_dob'           => 'date',
         'expiration_date'       => 'date',
+        'collection_items'      => 'array',
         'claim_created'         => 'boolean',
         'provider_credentialed' => 'boolean',
         'charges'               => 'float',
@@ -152,6 +154,11 @@ class Appointment extends Model
     public function scopeForInsuranceType(Builder $query, ?string $insuranceType): Builder
     {
         return $insuranceType ? $query->where('insurance_type', $insuranceType) : $query;
+    }
+
+    public function scopeForPscCode(Builder $query, ?string $pscCode): Builder
+    {
+        return $pscCode ? $query->where('psc_code', $pscCode) : $query;
     }
 
     public function scopeForEligibility(Builder $query, ?string $eligibility): Builder

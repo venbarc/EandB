@@ -69,6 +69,7 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
         'authorization_number',
         'scheduled_visits',
         'total_visits',
+        'expiration_date',
         'auth_status',
         'installment_id',
         'invoice_no_ar_aging',
@@ -114,7 +115,7 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
     }
 
     public function startRow(): int  { return 2; }
-    public function chunkSize(): int { return 2000; }
+    public function chunkSize(): int { return 1900; }
 
     public function collection(Collection $rows): void
     {
@@ -238,6 +239,7 @@ class AppointmentsImport implements ToCollection, WithStartRow, WithChunkReading
             'patient_name'             => $name,
             'patient_dob'              => $dob,
             'date_of_service'          => $date,
+            'expiration_date'          => $date,
             'eligibility_status'       => 'Verification Pending',
             'appointment_status'       => trim((string) ($row[7] ?? 'New')),
             'provider'                 => trim((string) ($row[4] ?? '')),
