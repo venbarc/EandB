@@ -3,6 +3,34 @@ import { router } from '@inertiajs/react';
 import { Appointment, FilterState, PaginationMeta } from '@/types';
 import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Loader2, Columns3, Maximize2 } from 'lucide-react';
 
+const INSURANCE_OPTIONS = [
+  'AARP',
+  'AARP MedicareComplete insured through UnitedHealthcare / Oxford Medicare Network -  AARP MedicareComplete',
+  'AARP Medicare Supplement Plans insured by UnitedHealthcare Insurance Company',
+  'Aetna',
+  'Aetna Medicare',
+  'American Specialty Health Plan',
+  'Blue Cross Blue Shield Colorado - Anthem',
+  'Cigna',
+  'Federal Anthem Blue Cross and Blue Shield Colorado',
+  'First Choice Health Network',
+  'Humana Medicare Advantage Plans',
+  'Kaiser Foundation Health Plan of Colorado',
+  'MEDRISK',
+  'Medicare Colorado',
+  'Mutual Of Omaha Insurance Company',
+  'Select Health of Utah',
+  'Surest',
+  'The Zero Card LLC',
+  'Tricare West Region',
+  'UMR - Wausau/UHIS',
+  'US Dept Labor/OWCP/DEEOIC',
+  'Unidentified',
+  'United American Insurance Company',
+  'United Healthcare',
+  'UnitedHealthcare',
+];
+
 interface AppointmentsTableProps {
   data: Appointment[];
   meta: PaginationMeta;
@@ -111,6 +139,16 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
   const getRefColor = (status: string): string | null =>
     status === 'Required' ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : null;
 
+  const getPscRowBg = (pscCode: string): string => {
+    if (pscCode === 'Eligibility Completed')     return 'bg-amber-100';
+    if (pscCode === 'Eligibility Not Found')      return 'bg-red-100';
+    if (pscCode === 'No Collection Required')    return 'bg-orange-100';
+    if (pscCode === 'Provider Not Credentialed') return 'bg-cyan-100';
+    if (pscCode === 'Payment Completed')         return 'bg-emerald-100';
+    if (pscCode === 'Self Pay')                  return 'bg-pink-100';
+    return '';
+  };
+
   /* ---------- Insurance inline-edit cell (shared) ---------- */
   const InsuranceCell: React.FC<{
     row: Appointment;
@@ -127,17 +165,19 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
 
     if (editing?.id === row.id) {
       return (
-        <input
+        <select
           autoFocus
           value={editing.value}
           onChange={(e) => setEditing({ id: row.id, value: e.target.value })}
           onBlur={() => handleSave(row.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave(row.id);
-            if (e.key === 'Escape') setEditing(null);
-          }}
+          onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null); }}
           className={`w-full rounded border border-teal-400 bg-white px-1 py-0.5 ${textSize} text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-400`}
-        />
+        >
+          <option value="">-- Select Insurance --</option>
+          {INSURANCE_OPTIONS.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
       );
     }
 
@@ -280,7 +320,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
           <tr><td colSpan={23} className="px-4 py-14 text-center text-[11px] font-medium text-slate-400">No appointments found with the current filters.</td></tr>
         ) : data.map((row) => (
           <React.Fragment key={row.id}>
-            <tr className={`transition ${expandedId === row.id ? 'bg-teal-50' : 'hover:bg-slate-50'}`}>
+            <tr className={`transition ${expandedId === row.id ? 'bg-teal-50' : (getPscRowBg(row.pscCode) || 'hover:bg-slate-50')}`}>
               <td className="cursor-pointer px-1 py-1.5 w-6" onClick={() => toggleExpand(row.id)}>
                 <button type="button" className="text-slate-400 transition hover:text-teal-500">
                   {expandedId === row.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -402,7 +442,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
             <tr><td colSpan={27} className="px-4 py-14 text-center text-sm font-medium text-slate-400">No appointments found with the current filters.</td></tr>
           ) : data.map((row) => (
             <React.Fragment key={row.id}>
-              <tr className={`transition ${expandedId === row.id ? 'bg-teal-50' : 'hover:bg-slate-50'}`}>
+              <tr className={`transition ${expandedId === row.id ? 'bg-teal-50' : (getPscRowBg(row.pscCode) || 'hover:bg-slate-50')}`}>
                 <td className="cursor-pointer px-3 py-3" onClick={() => toggleExpand(row.id)}>
                   <button type="button" className="text-slate-400 transition hover:text-teal-500">
                     {expandedId === row.id ? <ChevronDown size={18} /> : <ChevronRight size={18} />}

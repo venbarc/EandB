@@ -11,7 +11,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Maatwebsite\Excel\Facades\Excel;
 
 class ImportAppointmentsJob implements ShouldQueue
 {
@@ -55,7 +54,29 @@ class ImportAppointmentsJob implements ShouldQueue
             $importer->updatesOnly();
         }
 
-        Excel::import($importer, $this->filePath, 'local');
+        // Use native fgetcsv chunked reading to avoid PhpSpreadsheet memory overhead.
+        // PhpSpreadsheet builds a full Spreadsheet object (with per-cell formatting) even
+        // for CSV files, which easily exhausts the 128 MB PHP memory limit on large files.
+        $handle    = fopen($absPath, 'r');
+        fgetcsv($handle); // skip header row (startRow = 2)
+
+        $chunk     = [];
+        $chunkSize = 1900; // 33 columns × 1900 rows = 62,700 placeholders (MySQL limit: 65,535)
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $chunk[] = collect($row);
+
+            if (count($chunk) >= $chunkSize) {
+                $importer->collection(collect($chunk));
+                $chunk = [];
+            }
+        }
+
+        if (!empty($chunk)) {
+            $importer->collection(collect($chunk));
+        }
+
+        fclose($handle);
 
         Cache::put(self::CACHE_KEY, [
             'state'    => 'complete',

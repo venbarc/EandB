@@ -15,7 +15,7 @@ class DashboardController extends Controller
         $filters = $request->only([
             'dateFrom', 'dateTo', 'ampm', 'patient', 'insurances', 'provider',
             'status', 'location', 'auth', 'referral', 'eligibility', 'insuranceType',
-            'sort', 'direction',
+            'pscCode', 'sort', 'direction',
         ]);
 
         // ── Shared filtered base query ───────────────────────────────────────────
@@ -30,7 +30,8 @@ class DashboardController extends Controller
             ->forAuth($filters['auth'] ?? null)
             ->forReferral($filters['referral'] ?? null)
             ->forEligibility($filters['eligibility'] ?? null)
-            ->forInsuranceType($filters['insuranceType'] ?? null);
+            ->forInsuranceType($filters['insuranceType'] ?? null)
+            ->forPscCode($filters['pscCode'] ?? null);
 
         // ── Appointments query ───────────────────────────────────────────────────
         $appointments = (clone $baseQuery)
@@ -156,6 +157,7 @@ class DashboardController extends Controller
             'totalVisits'          => $a->total_visits,
             'remainingVisits'      => ($a->total_visits !== null && $a->scheduled_visits !== null) ? $a->total_visits - $a->scheduled_visits : null,
             'collectionStatus'     => $a->collection_status ?? '',
+            'collectionItems'      => $a->collection_items ?? [],
             'providerCredentialed' => $a->provider_credentialed,
             'collectedAmount'      => $a->collected_amount,
             'collectedMethod'      => $a->collected_method ?? '',

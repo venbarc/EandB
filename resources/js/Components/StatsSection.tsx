@@ -29,6 +29,15 @@ const StatCard: React.FC<{
   </button>
 );
 
+const PSC_LEGEND = [
+  { code: 'Eligibility Completed',     dot: 'bg-amber-400',   activeBg: 'bg-amber-100',   activeBorder: 'border-amber-400',   activeText: 'text-amber-700' },
+  { code: 'Eligibility Not Found',     dot: 'bg-red-500',     activeBg: 'bg-red-100',     activeBorder: 'border-red-400',     activeText: 'text-red-700' },
+  { code: 'No Collection Required',    dot: 'bg-orange-400',  activeBg: 'bg-orange-100',  activeBorder: 'border-orange-400',  activeText: 'text-orange-700' },
+  { code: 'Provider Not Credentialed', dot: 'bg-cyan-400',    activeBg: 'bg-cyan-100',    activeBorder: 'border-cyan-400',    activeText: 'text-cyan-700' },
+  { code: 'Payment Completed',         dot: 'bg-emerald-500', activeBg: 'bg-emerald-100', activeBorder: 'border-emerald-400', activeText: 'text-emerald-700' },
+  { code: 'Self Pay',                  dot: 'bg-pink-500',    activeBg: 'bg-pink-100',    activeBorder: 'border-pink-400',    activeText: 'text-pink-700' },
+] as const;
+
 export const StatsSection: React.FC<StatsSectionProps> = ({ stats, filters }) => {
   const navigate = (params: Record<string, string>) => {
     router.get('/', params, { preserveState: false });
@@ -86,6 +95,28 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats, filters }) =>
           onClick={() => navigate({ referral: 'Required' })}
           isActive={f.referral === 'Required'}
         />
+      </div>
+
+      {/* PSC Status Legend */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        {PSC_LEGEND.map(({ code, dot, activeBg, activeBorder, activeText }) => {
+          const isActive = f.pscCode === code;
+          return (
+            <button
+              key={code}
+              type="button"
+              onClick={() => navigate(isActive ? {} : { pscCode: code })}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all hover:-translate-y-0.5 active:scale-95 ${
+                isActive
+                  ? `${activeBg} ${activeBorder} ${activeText} shadow-sm`
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white'
+              }`}
+            >
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot}`} />
+              {code}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

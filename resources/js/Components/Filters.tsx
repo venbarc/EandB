@@ -23,6 +23,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     eligibility: filters.eligibility ?? '',
     insurances: filters.insurances ?? [],
     insuranceType: filters.insuranceType ?? '',
+    pscCode: filters.pscCode ?? '',
     sort: filters.sort ?? '',
     direction: filters.direction,
   });
@@ -44,6 +45,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
     if (form.referral) params.referral = form.referral;
     if (form.eligibility) params.eligibility = form.eligibility;
     if (form.insuranceType) params.insuranceType = form.insuranceType;
+    if (form.pscCode) params.pscCode = form.pscCode;
     if (form.sort) params.sort = form.sort;
     if (form.direction) params.direction = form.direction;
     if ((form.insurances ?? []).length > 0) params.insurances = form.insurances ?? [];
@@ -66,6 +68,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
       eligibility: '',
       insurances: [],
       insuranceType: '',
+      pscCode: '',
       sort: '',
       direction: undefined,
     });
@@ -180,6 +183,7 @@ export const Filters: React.FC<FiltersProps> = ({ filters, filterOptions }) => {
           <FilterDropdown label="Referral Required" name="referral" options={['Required', 'N/A']} value={form.referral ?? ''} />
           <FilterDropdown label="E&B Status" name="eligibility" options={['Eligible', 'Not Eligible', 'Verification Pending']} value={form.eligibility ?? ''} />
           <FilterDropdown label="Insurance Type" name="insuranceType" options={filterOptions.insuranceTypes} value={form.insuranceType ?? ''} />
+          <FilterDropdown label="PSC Status" name="pscCode" options={['Eligibility Completed', 'Eligibility Not Found', 'No Collection Required', 'Provider Not Credentialed', 'Payment Completed', 'Self Pay']} value={form.pscCode ?? ''} />
         </div>
 
         <div className="flex items-center gap-2 md:pb-0.5">

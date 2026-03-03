@@ -1,19 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { X, User, Loader2 } from 'lucide-react';
+import { X, User, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Appointment } from '@/types';
 
 const inputCls =
   'w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500 p-2.5 bg-gray-50 border text-sm text-gray-900 placeholder:text-gray-400';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
 
-const PSC_CODES = [
-  'Eligibility Completed',
-  'Eligibility Not Found',
-  'No Collection Required',
-  'Provider Not Credentialed',
-  'Payment Completed',
-  'Self Pay',
+const PSC_STATUSES: { code: string; dot: string; ring: string; bg: string; border: string; text: string }[] = [
+  { code: 'Eligibility Completed',     dot: 'bg-amber-400',   ring: 'ring-amber-400',   bg: 'bg-amber-50',   border: 'border-amber-400',   text: 'text-amber-700' },
+  { code: 'Eligibility Not Found',     dot: 'bg-red-500',     ring: 'ring-red-400',     bg: 'bg-red-50',     border: 'border-red-400',     text: 'text-red-700' },
+  { code: 'No Collection Required',    dot: 'bg-orange-400',  ring: 'ring-orange-400',  bg: 'bg-orange-50',  border: 'border-orange-400',  text: 'text-orange-700' },
+  { code: 'Provider Not Credentialed', dot: 'bg-cyan-400',    ring: 'ring-cyan-400',    bg: 'bg-cyan-50',    border: 'border-cyan-400',    text: 'text-cyan-700' },
+  { code: 'Payment Completed',         dot: 'bg-emerald-500', ring: 'ring-emerald-400', bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-700' },
+  { code: 'Self Pay',                  dot: 'bg-pink-500',    ring: 'ring-pink-400',    bg: 'bg-pink-50',    border: 'border-pink-400',    text: 'text-pink-700' },
 ];
 
 interface UpdateRecordModalProps {
@@ -27,6 +27,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
     provider_credentialed: '' as string,
     eligibility_status: '' as string,
     collection_status: '' as string,
+    collection_items: [] as Array<{ status: string; amount: string }>,
     insurance_type: '' as string,
     payments: '' as string,
     auth_status: '' as string,
@@ -36,8 +37,12 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
     collected_method: '' as string,
     collected_receipt_no: '' as string,
     submitted: false as boolean,
+    psc_code: '' as string,
+    psc_description: '' as string,
   });
   const [activeAction, setActiveAction] = React.useState<'save' | 'toggle' | null>(null);
+  const [newEntryStatus, setNewEntryStatus] = useState('');
+  const [newEntryAmount, setNewEntryAmount] = useState('');
 
   useEffect(() => {
     if (!record) return;
@@ -47,6 +52,7 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
         record.providerCredentialed === true ? 'Yes' : record.providerCredentialed === false ? 'No' : '',
       eligibility_status: record.eligibilityStatus !== 'Verification Needed' ? record.eligibilityStatus : '',
       collection_status: record.collectionStatus ?? '',
+      collection_items: (record.collectionItems ?? []).map(i => ({ status: i.status, amount: String(i.amount) })),
       insurance_type: record.insuranceType ?? '',
       payments: record.paidAmount > 0 ? String(record.paidAmount) : '',
       auth_status: record.authStatus !== 'N/A' ? record.authStatus : '',
@@ -56,13 +62,28 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
       collected_method: record.collectedMethod ?? '',
       collected_receipt_no: record.collectedReceiptNo ?? '',
       submitted: record.isSubmittedToPaDept,
+      psc_code: record.pscCode ?? '',
+      psc_description: record.pscDescription ?? '',
     });
   }, [record?.id]);
 
   const handleClose = () => {
     reset();
     setActiveAction(null);
+    setNewEntryStatus('');
+    setNewEntryAmount('');
     onClose();
+  };
+
+  const handleAddCollectionEntry = () => {
+    if (!newEntryStatus || !newEntryAmount) return;
+    setData('collection_items', [...data.collection_items, { status: newEntryStatus, amount: newEntryAmount }]);
+    setNewEntryStatus('');
+    setNewEntryAmount('');
+  };
+
+  const handleRemoveCollectionEntry = (index: number) => {
+    setData('collection_items', data.collection_items.filter((_, i) => i !== index));
   };
 
   const handleSave = () => {
@@ -148,20 +169,6 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Collection Status</label>
-                <select
-                  value={data.collection_status}
-                  onChange={(e) => setData('collection_status', e.target.value)}
-                  className={`${inputCls} modal-select`}
-                >
-                  <option value="">Choose Option</option>
-                  <option>Co Pay</option>
-                  <option>No Co Pay</option>
-                  <option>Co Insurance</option>
-                  <option>Deductible</option>
-                </select>
-              </div>
-              <div>
                 <label className={labelCls}>Insurance Type</label>
                 <select
                   value={data.insurance_type}
@@ -176,23 +183,85 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                   <option>Worker&apos;s Comp</option>
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Patient Balance Amount</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={data.payments}
-                    onChange={(e) => setData('payments', e.target.value)}
-                    className={`pl-7 ${inputCls}`}
-                    placeholder="0.00"
-                  />
+            </div>
+
+            {/* ── Collection Entries ─────────────────────────────── */}
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <span className={labelCls}>Collection</span>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Collection Status</label>
+                  <select
+                    value={newEntryStatus}
+                    onChange={(e) => setNewEntryStatus(e.target.value)}
+                    className={`${inputCls} modal-select`}
+                  >
+                    <option value="">Choose Option</option>
+                    <option>Co Pay</option>
+                    <option>No Co Pay</option>
+                    <option>Co Insurance</option>
+                    <option>Deductible</option>
+                  </select>
                 </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Patient Balance Amount</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newEntryAmount}
+                      onChange={(e) => setNewEntryAmount(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCollectionEntry(); } }}
+                      className={`pl-7 ${inputCls}`}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddCollectionEntry}
+                  disabled={!newEntryStatus || !newEntryAmount}
+                  className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Plus size={15} /> Add
+                </button>
               </div>
+
+              {data.collection_items.length > 0 && (
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Amount</th>
+                        <th className="w-10 px-3 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.collection_items.map((entry, idx) => (
+                        <tr key={idx} className="bg-white hover:bg-gray-50">
+                          <td className="px-3 py-2 text-gray-700">{entry.status}</td>
+                          <td className="px-3 py-2 text-gray-700 font-medium">${parseFloat(entry.amount).toFixed(2)}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCollectionEntry(idx)}
+                              className="rounded p-1 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                              title="Remove"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-100">
@@ -229,6 +298,43 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
                     </label>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* PSC Status */}
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <span className={labelCls}>PSC Status</span>
+              <div className="grid grid-cols-3 gap-2.5">
+                {PSC_STATUSES.map(({ code, dot, ring, bg, border, text }) => {
+                  const selected = data.psc_code === code;
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setData('psc_code', selected ? '' : code)}
+                      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all ${
+                        selected
+                          ? `${bg} ${border} ring-2 ring-offset-1 ${ring} shadow-sm`
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`h-3 w-3 shrink-0 rounded-full ${dot}`} />
+                      <span className={`text-xs font-medium leading-tight ${selected ? text : 'text-gray-700'}`}>
+                        {code}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div>
+                <label className={labelCls}>PSC Description</label>
+                <input
+                  type="text"
+                  value={data.psc_description}
+                  onChange={(e) => setData('psc_description', e.target.value)}
+                  className={inputCls}
+                  placeholder="Enter additional notes for this status..."
+                />
               </div>
             </div>
 
@@ -277,102 +383,6 @@ export const UpdateRecordModal: React.FC<UpdateRecordModalProps> = ({ isOpen, on
             {processing ? (
               <>
                 <Loader2 size={16} className="animate-spin" /> {activeAction === 'save' ? 'Saving...' : 'Processing...'}
-              </>
-            ) : (
-              'Save'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface UpdatePSCModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  record: Appointment | null;
-}
-
-export const UpdatePSCModal: React.FC<UpdatePSCModalProps> = ({ isOpen, onClose, record }) => {
-  const { data, setData, patch, processing, reset } = useForm({
-    psc_code: '',
-    psc_description: '',
-  });
-
-  useEffect(() => {
-    if (!record) return;
-    setData({
-      psc_code: record.pscCode ?? '',
-      psc_description: record.pscDescription ?? '',
-    });
-  }, [record?.id]);
-
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
-
-  const handleSave = () => {
-    if (!record) return;
-    patch(`/appointments/${record.id}/psc`, {
-      onSuccess: () => handleClose(),
-    });
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Update PSC</h3>
-            <p className="text-sm text-gray-500 mt-1">Patient Service Center code for {record?.patient.name}.</p>
-          </div>
-          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-4">
-          <div>
-            <label className={labelCls}>PSC Code</label>
-            <select
-              value={data.psc_code}
-              onChange={(e) => setData('psc_code', e.target.value)}
-              className={`${inputCls} modal-select`}
-            >
-              <option value="">Select code...</option>
-              {PSC_CODES.map((code) => (
-                <option key={code}>{code}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Description / Notes</label>
-            <input
-              type="text"
-              value={data.psc_description}
-              onChange={(e) => setData('psc_description', e.target.value)}
-              className={inputCls}
-              placeholder="Enter additional notes..."
-            />
-          </div>
-        </div>
-
-        <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={handleClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800">
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={processing}
-            className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-sm flex items-center gap-2 disabled:opacity-60"
-          >
-            {processing ? (
-              <>
-                <Loader2 size={14} className="animate-spin" /> Saving...
               </>
             ) : (
               'Save'

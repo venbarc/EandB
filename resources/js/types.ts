@@ -41,6 +41,7 @@ export interface Appointment {
   location: string;
   insuranceType: string;
   collectionStatus: string;
+  collectionItems: Array<{ status: string; amount: number }>;
   providerCredentialed: boolean | null;
   collectedAmount: number | null;
   collectedMethod: string;
@@ -97,6 +98,7 @@ export type FilterState = {
   referral?: string;
   eligibility?: string;
   insuranceType?: string;
+  pscCode?: string;
   sort?: string;
   direction?: 'asc' | 'desc';
 };
